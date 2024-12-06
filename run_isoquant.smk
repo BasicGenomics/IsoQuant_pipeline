@@ -1,8 +1,8 @@
 configfile: "config/config.yaml"
 
 
-REFFILE = "{resource_dir}/genome_references/{species}/current/reference.fa".format(resource_dir = config["resource_dir"], species = config["species"])
-GTFFILE = "{resource_dir}/genome_references/{species}/current/geneannotations".format(resource_dir=config["resource_dir"], species=config["species"])
+REFFILE = "{resource_dir}genome_references/{species}/current/reference.fa".format(resource_dir = config["resource_dir"], species = config["species"])
+GTFFILE = "{resource_dir}genome_references/{species}/current/geneannotations".format(resource_dir=config["resource_dir"], species=config["species"])
 rule all:
     input: "results/isoquant_output/mudata.done"
 
