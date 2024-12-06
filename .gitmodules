@@ -1,0 +1,3 @@
+[submodule "IsoQuant"]
+	path = IsoQuant
+	url = https://github.com/BasicGenomics/IsoQuant.git
