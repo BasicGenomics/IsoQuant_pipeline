@@ -14,7 +14,7 @@ rule run_IsoQuant:
     shell: "python {workflow.basedir}/IsoQuant/isoquant.py --reference {params.fasta} --genedb {params.gtf} --bam {input} --data_type pacbio_ccs -p {config[project_name]} -o results/isoquant_output/ --read_group tag:SM --complete_genedb --count_exons"
 
 rule make_MuData:
-    input: counts = "results/isoquant_output/{project_name}.transcript_model_grouped_counts.tsv".format(project_name = config["project_name"]), models = "results/isoquant_output/{project_name}.transcript_models.gtf".format(project_name = config["project_name"])
+    input: counts = "results/isoquant_output/{project_name}/{project_name}.transcript_model_grouped_counts.tsv".format(project_name = config["project_name"]), models = "results/isoquant_output/{project_name}/{project_name}.transcript_models.gtf".format(project_name = config["project_name"])
     output: touch("results/isoquant_output/mudata.done")
     conda: "requirements.yaml"
     shell: "python {workflow.basedir}/make_mudata.py --counts {input.counts} --models {input.models} --output-dir results/isoquant_output/mudata/"
