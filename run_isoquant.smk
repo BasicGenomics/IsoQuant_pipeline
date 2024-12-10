@@ -20,7 +20,7 @@ rule index_bamfile:
     shell: "samtools index {input}"
 
 rule run_IsoQuant:
-    input: bam =  "results/isoquant_output/{project_name}.isoquant_modified.bam", bai =  "results/isoquant_output/{project_name}.isoquant_modified.bam.bai"
+    input: bam =  "results/isoquant_output/{project_name}.isoquant_modified.bam".format(project_name = config["project_name"]), bai =  "results/isoquant_output/{project_name}.isoquant_modified.bam.bai".format(project_name = config["project_name"])
     output: counts = "results/isoquant_output/{project_name}/{project_name}.transcript_model_grouped_counts.tsv".format(project_name = config["project_name"]), models = "results/isoquant_output/{project_name}/{project_name}.transcript_models.gtf".format(project_name = config["project_name"])
     conda: "requirements.yaml"
     params: fasta = REFFILE , gtf = "{}.isoquant.gtf".format(GTFFILE)
