@@ -7,7 +7,7 @@ def main():
     parser.add_argument('-i','--input',metavar='input', type=str, help='Input .bam file')
     parser.add_argument('-o','--output',metavar='output', type=str, help='Output .bam file')
 
-    args = parser.parse_args
+    args = parser.parse_args()
     bam_infile = args.input
     bam_outfile = args.output
     bam_in = pysam.AlignmentFile(bam_infile, 'rb')
