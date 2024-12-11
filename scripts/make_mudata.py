@@ -90,17 +90,18 @@ def main():
     transcript_var_df = transcript_var_df.reindex(linear_transcript_count_df['#feature_id'].unique())
     transcript_to_col_dict = {transcript: j for (j, transcript) in enumerate(transcript_var_df.index)}
     gene_var_df = gene_var_df.reindex(linear_gene_count_df['gene_id'].unique())
+    
     gene_to_col_dict = {gene: i for (i, gene) in enumerate(gene_var_df.index)}
 
-    cell_to_row_dict = {cell: k for (k, cell) in enumerate(linear_transcript_count_df['group_id_modified'].unique())}
+    cell_to_row_dict = {cell: k for (k, cell) in enumerate(linear_transcript_count_df['group_id'].unique())}
 
-    linear_transcript_count_df['row_ind'] = linear_transcript_count_df.apply(lambda row: cell_to_row_dict[row['group_id_modified']], axis=1)
+    linear_transcript_count_df['row_ind'] = linear_transcript_count_df.apply(lambda row: cell_to_row_dict[row['group_id']], axis=1)
     linear_transcript_count_df['col_ind'] = linear_transcript_count_df.apply(lambda row: transcript_to_col_dict[row['#feature_id']], axis=1)
 
-    linear_gene_count_df['row_ind'] = linear_gene_count_df.apply(lambda row: cell_to_row_dict[row['group_id_modified']], axis=1)
+    linear_gene_count_df['row_ind'] = linear_gene_count_df.apply(lambda row: cell_to_row_dict[row['group_id']], axis=1)
     linear_gene_count_df['col_ind'] = linear_gene_count_df.apply(lambda row: gene_to_col_dict[row['gene_id']], axis=1)
 
-    obs_df = pd.DataFrame(index=linear_transcript_count_df['group_id_modified'].unique())
+    obs_df = pd.DataFrame(index=linear_transcript_count_df['group_id'].unique())
 
     transcript_X = sparse.csr_matrix((linear_transcript_count_df['count'].values,(linear_transcript_count_df['row_ind'].values, linear_transcript_count_df['col_ind'].values)))
     gene_X = sparse.csr_matrix((linear_gene_count_df['count'].values,(linear_gene_count_df['row_ind'].values, linear_gene_count_df['col_ind'].values)))
