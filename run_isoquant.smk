@@ -5,7 +5,7 @@ REFFILE = "{resource_dir}genome_references/{species}/current/reference.fa".forma
 GTFFILE = "{resource_dir}genome_references/{species}/current/geneannotations".format(resource_dir=config["resource_dir"], species=config["species"])
 
 rule all:
-    input: "results/isoquant_output/mudata/{project_name}_counts.h5mu"
+    input: "results/isoquant_output/mudata/{project_name}_counts.h5mu".format(project_name=config["project_name"])
 
 rule modify_bamfile:
     input: "results/{project_name}.reads.aligned_trimmed_genetagged_sorted_umicorrected.stitched.molecules.sorted.bam".format(project_name=config["project_name"])
@@ -28,6 +28,6 @@ rule run_IsoQuant:
 
 rule make_MuData:
     input: counts = "results/isoquant_output/{project_name}/{project_name}.transcript_model_grouped_counts_linear.tsv".format(project_name = config["project_name"]), models = "results/isoquant_output/{project_name}/{project_name}.transcript_models.gtf".format(project_name = config["project_name"])
-    output: "results/isoquant_output/mudata/{project_name}_counts.h5mu"
+    output: "results/isoquant_output/mudata/{project_name}_counts.h5mu"format(project_name=config["project_name"])
     conda: "requirements.yaml"
     shell: "python {workflow.basedir}/scripts/make_mudata.py --counts {input.counts} --models {input.models} --output {output}"
