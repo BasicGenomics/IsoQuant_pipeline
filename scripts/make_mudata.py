@@ -79,7 +79,7 @@ def main():
     linear_transcript_count_df = linear_transcript_count_df[linear_transcript_count_df.apply(lambda row: row['#feature_id'] in transcript_subset, axis=1)]
 
     linear_transcript_count_df['gene_id'] = linear_transcript_count_df.apply(lambda row: transcript_dict[row['#feature_id']]['gene_id'], axis=1)
-    linear_gene_count_df = linear_transcript_count_df.groupby('gene_id').apply(lambda gene_df: gene_df.groupby('group_id').sum())
+    linear_gene_count_df = linear_transcript_count_df.groupby('gene_id').apply(lambda gene_df: gene_df.groupby('group_id').sum().reset_index())
 
     linear_transcript_count_df = linear_transcript_count_df[linear_transcript_count_df['count'] > 0]
     linear_gene_count_df = linear_gene_count_df[linear_gene_count_df['count'] > 0]
