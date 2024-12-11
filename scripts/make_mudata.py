@@ -75,7 +75,7 @@ def main():
     linear_transcript_count_df = pd.read_csv(transcript_count_file, sep='\t')
 
     linear_transcript_count_sum_df = linear_transcript_count_df.groupby('#feature_id').sum()
-    transcript_subset = linear_transcript_count_sum_df.index[(linear_transcript_count_sum_df > 0.0).values.reshape(-1)]
+    transcript_subset = linear_transcript_count_sum_df.index[(linear_transcript_count_sum_df['count'] > 0.0).values.reshape(-1)]
     linear_transcript_count_df = linear_transcript_count_df[linear_transcript_count_df.apply(lambda row: row['#feature_id'] in transcript_subset, axis=1)]
 
     linear_transcript_count_df['gene_id'] = linear_transcript_count_df.apply(lambda row: transcript_dict[row['#feature_id']]['gene_id'], axis=1)
