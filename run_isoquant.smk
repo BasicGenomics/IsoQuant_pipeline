@@ -7,8 +7,8 @@ else:
         config['resource_dir'] = '/usr/local/app/resources/'
 
 
-REFFILE = "{resource_dir}genome_references/{species}/reference.fa".format(resource_dir = config["resource_dir"], species = config["species"])
-GTFFILE = "{resource_dir}genome_references/{species}/geneannotations".format(resource_dir=config["resource_dir"], species = config["species"])
+REFFILE = "{resource_dir}genome_references/{reference}/reference.fa".format(resource_dir = config["resource_dir"], reference = config["reference"])
+GTFFILE = "{resource_dir}genome_references/{reference}/geneannotations".format(resource_dir=config["resource_dir"], reference = config["reference"])
 
 rule all:
     input: "results/isoquant_output/mudata/{project_name}_counts.h5mu".format(project_name=config["project_name"])
