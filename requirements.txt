@@ -11,6 +11,5 @@ numpy>=1.18.1
 scipy>=1.4.1
 seaborn>=0.10.0
 anndata==0.11.1
-samtools==1.19
 mudata
 snakemake==9.6.0
