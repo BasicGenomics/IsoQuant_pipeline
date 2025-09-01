@@ -23,18 +23,11 @@ rule index_bamfile:
     output:  temp("results/isoquant_output/{project_name}.isoquant_modified.bam.bai".format(project_name=config["project_name"]))
     shell: "samtools index {input}"
 
-if config['bulk']:
-    rule run_IsoQuant:
-        input: bam =  "results/isoquant_output/{project_name}.isoquant_modified.bam".format(project_name = config["project_name"]), bai =  "results/isoquant_output/{project_name}.isoquant_modified.bam.bai".format(project_name = config["project_name"])
-        output: counts = "results/isoquant_output/{project_name}/{project_name}.transcript_model_grouped_counts_linear.tsv".format(project_name = config["project_name"]), models = "results/isoquant_output/{project_name}/{project_name}.transcript_models.gtf".format(project_name = config["project_name"])
-        params: fasta = REFFILE , gtf = "{}.gff3".format(GTFFILE)
-        shell: "python IsoQuant/isoquant.py --reference {params.fasta} --genedb {params.gtf} --bam {input.bam} --data_type pacbio_ccs -p {config[project_name]} -o results/isoquant_output/ --read_group tag:SM --complete_genedb --count_exons"
-else:
-    rule run_IsoQuant:
-        input: bam =  "results/isoquant_output/{project_name}.isoquant_modified.bam".format(project_name = config["project_name"]), bai =  "results/isoquant_output/{project_name}.isoquant_modified.bam.bai".format(project_name = config["project_name"])
-        output: counts = "results/isoquant_output/{project_name}/{project_name}.transcript_model_grouped_counts_linear.tsv".format(project_name = config["project_name"]), models = "results/isoquant_output/{project_name}/{project_name}.transcript_models.gtf".format(project_name = config["project_name"])
-        params: fasta = REFFILE , gtf = "{}.gff3".format(GTFFILE)
-        shell: "python IsoQuant/isoquant.py --reference {params.fasta} --genedb {params.gtf} --bam {input.bam} --data_type pacbio_ccs -p {config[project_name]} -o results/isoquant_output/ --read_group tag:BC --complete_genedb --count_exons"
+rule run_IsoQuant:
+    input: bam =  "results/isoquant_output/{project_name}.isoquant_modified.bam".format(project_name = config["project_name"]), bai =  "results/isoquant_output/{project_name}.isoquant_modified.bam.bai".format(project_name = config["project_name"])
+    output: counts = "results/isoquant_output/{project_name}/{project_name}.transcript_model_grouped_counts_linear.tsv".format(project_name = config["project_name"]), models = "results/isoquant_output/{project_name}/{project_name}.transcript_models.gtf".format(project_name = config["project_name"])
+    params: fasta = REFFILE , gtf = "{}.gff3".format(GTFFILE)
+    shell: "python IsoQuant/isoquant.py --reference {params.fasta} --genedb {params.gtf} --bam {input.bam} --data_type pacbio_ccs -p {config[project_name]} -o results/isoquant_output/ --read_group tag:SM --complete_genedb --count_exons"
 
 rule make_MuData:
     input: counts = "results/isoquant_output/{project_name}/{project_name}.transcript_model_grouped_counts_linear.tsv".format(project_name = config["project_name"]), models = "results/isoquant_output/{project_name}/{project_name}.transcript_models.gtf".format(project_name = config["project_name"])

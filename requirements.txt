@@ -1,4 +1,3 @@
-
 gffutils>=0.10.1
 biopython>=1.76
 pandas>=1.0.1
@@ -11,6 +10,7 @@ matplotlib>=3.1.3
 numpy>=1.18.1
 scipy>=1.4.1
 seaborn>=0.10.0
-anndata=0.11.1
-samtools=1.19
+anndata==0.11.1
+samtools==1.19
 mudata
+snakemake==9.6.0
