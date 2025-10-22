@@ -81,6 +81,9 @@ def main():
     linear_transcript_count_df['gene_id'] = linear_transcript_count_df.apply(lambda row: transcript_dict[row['#feature_id']]['gene_id'], axis=1)
     linear_gene_count_df = linear_transcript_count_df.groupby('gene_id').apply(lambda gene_df: gene_df.groupby('group_id').sum().reset_index())
 
+    ## To reset gene_id after groupby, so that the gene_id strings do not join as one string, otherwise the gene_id can not be matched later in gene_var_df - in the line gene_var_df = gene_var_df.reindex(linear_gene_count_df['gene_id'].unique())
+    linear_gene_count_df['gene_id']=linear_gene_count_df.index.get_level_values(0)
+
     linear_transcript_count_df = linear_transcript_count_df[linear_transcript_count_df['count'] > 0]
     linear_gene_count_df = linear_gene_count_df[linear_gene_count_df['count'] > 0]
 
