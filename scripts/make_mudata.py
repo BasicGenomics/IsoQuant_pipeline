@@ -6,6 +6,8 @@ from scipy import sparse
 import anndata
 from pathlib import Path
 from mudata import MuData
+import os
+import numpy as np
 
 def parse_gtf(gtffile):
     tmp_file = tempfile.NamedTemporaryFile(suffix=".db")
@@ -54,6 +56,27 @@ def parse_gtf(gtffile):
 def generate_anndata(X, obs_df, var_df):
     ad = anndata.AnnData(X, obs_df, var_df)
     return ad
+
+def make_count_adata(count_tsv, tpm_tsv):    
+
+    count = pd.read_csv(count_tsv,sep='\t',index_col=0, comment=None)
+    tpm = pd.read_csv(tpm_tsv,sep='\t',index_col=0, comment=None)
+
+    tpm = tpm.loc[count.index,:] 
+    tpm = tpm.loc[:,count.columns]
+    assert np.array_equal(count.index,tpm.index)
+    assert np.array_equal(count.columns,tpm.columns)
+
+    obs_names = count.columns
+    feature_name = count.index
+
+    adata = anndata.AnnData(X=count.values.T,
+            layers={'count':count.T,
+                    'tpm':tpm.T})
+
+    adata.obs_names = obs_names
+    adata.var_names = feature_name
+    return adata
 
 def main():
     parser = argparse.ArgumentParser(description='Generate MuData object', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -112,6 +135,26 @@ def main():
     transcript_adata = generate_anndata(transcript_X, obs_df, transcript_var_df)
     gene_adata = generate_anndata(gene_X, obs_df, gene_var_df)
     mdata = MuData({'gene': gene_adata, 'isoform': transcript_adata})
+
+    ## if TPM file based on transcript model exists, add it as layer
+    tpm_file = transcript_count_file.replace('_counts_linear.tsv', '_tpm.tsv')
+    if os.path.exists(tpm_file):
+        tpm = pd.read_csv(tpm_file,sep='\t',index_col=0, comment=None)
+        tpm = tpm.loc[mdata['isoform'].var_names,:]
+        tpm = tpm.loc[:,mdata.obs_names]
+        assert np.array_equal(tpm.index,mdata['isoform'].var_names)
+        assert np.array_equal(tpm.columns,mdata['isoform'].obs_names)
+        mdata['isoform'].layers['tpm'] = tpm.T
+
+    ## if count and TPM file based on reference exists, add it as a mod in mdata
+    count_tsv = transcript_count_file.replace('.transcript_model_grouped_counts_linear.tsv', '.transcript_grouped_counts.tsv')
+    tpm_tsv = transcript_count_file.replace('.transcript_model_grouped_counts_linear.tsv', '.transcript_grouped_tpm.tsv')
+    if np.logical_and(os.path.exists(tpm_file) , os.path.exists(count_tsv)):
+        adata = make_count_adata(count_tsv, tpm_tsv)
+        adata = adata[mdata.obs_names,:]
+        assert np.array_equal(adata.obs_names, mdata.obs_names)
+        mdata.mod['reference_isoform'] = adata[mdata.obs_names,:]
+    
 
     Path('/'.join(outfile.split('/')[:-1])).mkdir(parents=True, exist_ok=True)
 
