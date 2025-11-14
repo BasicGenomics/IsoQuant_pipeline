@@ -61,6 +61,7 @@ def make_count_adata(count_tsv, tpm_tsv):
 
     count = pd.read_csv(count_tsv,sep='\t',index_col=0, comment=None)
     tpm = pd.read_csv(tpm_tsv,sep='\t',index_col=0, comment=None)
+    count.index.name, tpm.index.name = 'feature_id','feature_id'
 
     tpm = tpm.loc[count.index,:] 
     tpm = tpm.loc[:,count.columns]
@@ -153,9 +154,14 @@ def main():
         adata = make_count_adata(count_tsv, tpm_tsv)
         adata = adata[mdata.obs_names,:]
         assert np.array_equal(adata.obs_names, mdata.obs_names)
-        mdata.mod['reference_isoform'] = adata[mdata.obs_names,:]
-    
+        reference_isoform = adata[mdata.obs_names,:]
 
+        new_mdata = MuData({
+        'gene': mdata.mod['gene'].copy(),
+        'isoform': mdata.mod['isoform'].copy(),
+        'reference_isoform': reference_isoform})
+        mdata = new_mdata
+    
     Path('/'.join(outfile.split('/')[:-1])).mkdir(parents=True, exist_ok=True)
 
     mdata.write(outfile)
