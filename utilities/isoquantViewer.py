@@ -31,7 +31,7 @@ def is_in_set(a, b):
     set_b = set(b)
     return np.array([x in set_b for x in a])
 
-class isoquant_output:
+class isoquantViewer:
 
     def __init__(self,
                  output_directory:Path|str,
@@ -59,10 +59,11 @@ class isoquant_output:
         self.prefix = prefix
         self.referene_gtf = referene_gtf
         self.gene_db = gene_db
+        self.plot_output = f'{self.output_directory}/plot_output'
         transcript_model_reads_fname = os.path.join(self.output_directory,f'{prefix}/{prefix}.transcript_model_reads.tsv.gz')
 
         if mudata_path is None:
-            mudata_path = Path(self.output_directory).parent/f"mudata/{prefix}_counts.h5mu"
+            mudata_path = Path(self.output_directory)/f"mudata/{prefix}_counts.h5mu"
         self.mdata= mudata.read_h5mu(mudata_path)
 
 
@@ -81,6 +82,11 @@ class isoquant_output:
         self.transcript_model = f'{self.output_directory}/{self.prefix}/{self.prefix}.transcript_models.gtf'
 
         self._load_params_file()
+
+        self.parse_input_gtf(use_ref=True)
+        self.parse_input_gtf(use_ref=False)
+
+        self.get_assignment_df()
 
     def _load_params_file(self):
         """Load the .params file for necessary configuration and commands. From IsoQuant code."""
@@ -121,10 +127,9 @@ class isoquant_output:
             A nested dictionary containing gene, transcript, and exon information."""
 
         if use_ref:
-    
+            logging.info("Parsing: reference GTF file")
             if not self.genedb_filename:
                 # convert GTF to DB if we use previous IsoQuant runs
-                # remove this functionality later
                 tmp_file = tempfile.NamedTemporaryFile(suffix=".db")
                 self.genedb_filename = tmp_file.name
                 input_gtf_path = self.referene_gtf
@@ -151,7 +156,7 @@ class isoquant_output:
                 raise Exception(f"Error parsing GTF file: {str(e)}")
 
         else:
-
+            logging.info("Parsing: transcript model GTF file")
             tmp_file = tempfile.NamedTemporaryFile(suffix=".db")
             db = gffutils.create_db(
                             self.transcript_model,
@@ -182,9 +187,11 @@ class isoquant_output:
             If True, return the DataFrame containing read assignments.
         Returns:
         --------
-        df: pd.DataFrame
+        df: pl.DataFrame
             DataFrame containing read assignments (if return_df is True).
         """
+
+        logging.info(f"Loading: read assignments")
         read_assign_fname =  f'{self.output_directory}/{self.prefix}/{self.prefix}.read_assignments.tsv.gz'
 
 
@@ -215,12 +222,12 @@ class isoquant_output:
             pl.col("additional_info").str.extract(r"(?:^|;)Classification=([^;]*)", 1).alias("Classification"),
         ])
     
-        df = scan.collect().to_pandas(use_pyarrow_extension_array=True)
+        # df = scan.collect().to_pandas(use_pyarrow_extension_array=True)
 
         
-        self.reads_assignment = df
+        self.reads_assignment = scan.collect()
         if return_df:
-            return df
+            return scan
 
     def write_inut_for_drimseq(self):
         """Generate a transcript-level count file formatted for DRIMSeq analysis."""
@@ -262,7 +269,6 @@ class isoquant_output:
         """
 
         if not hasattr(self, "reads_assignment") or self.reads_assignment is None:
-            logging.info(f"Reads assignment not loaded, loading now...")
             self.get_assignment_df()
 
         def find_read_ids(use_transcript_model:bool,isoform_id:list=None):
@@ -271,8 +277,11 @@ class isoquant_output:
                 b00l = is_in_set(self.transcript_model_reads['transcript_id'],isoform_id)
                 read_id = self.transcript_model_reads.loc[b00l,:]['read_id'].values
             else:                     ### use the isoform ID based on the reference
-                b00l = is_in_set(self.reads_assignment['isoform_id'],isoform_id)
-                read_id = self.reads_assignment.loc[b00l,'read_id'].values
+                # b00l = is_in_set(self.reads_assignment['isoform_id'],isoform_id)
+                # read_id = self.reads_assignment.loc[b00l,'read_id'].values
+                read_id = self.reads_assignment.filter(
+                    pl.col("isoform_id").is_in(isoform_id)
+                )["read_id"].to_list()
 
             return read_id
 

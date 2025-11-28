@@ -9,18 +9,27 @@ from mudata import MuData
 import os
 import numpy as np
 
-def parse_gtf(gtffile):
-    tmp_file = tempfile.NamedTemporaryFile(suffix=".db")
-    db = gffutils.create_db(
-                    gtffile,
-                    dbfn=tmp_file.name,
-                    force=True,
-                    keep_order=True,
-                    merge_strategy="merge",
-                    sort_attribute_values=True,
-                    disable_infer_genes=True,
-                    disable_infer_transcripts=True,
-                )
+def parse_gtf(gtffile,genedb=None):
+    if genedb is None:
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".db")
+        db = gffutils.create_db(
+                        gtffile,
+                        dbfn=tmp_file.name,
+                        force=True,
+                        keep_order=True,
+                        merge_strategy="merge",
+                        sort_attribute_values=True,
+                        disable_infer_genes=True,
+                        disable_infer_transcripts=True,
+                    )
+    else:
+        try:
+            db = gffutils.FeatureDB(genedb, 
+                                    sort_attribute_values=True,
+                                    keep_order=True) 
+        except Exception as e:
+            return None,None
+
     gene_dict = {}
     transcript_dict = {}
     for gene in db.features_of_type("gene"):
@@ -145,22 +154,60 @@ def main():
         tpm = tpm.loc[:,mdata.obs_names]
         assert np.array_equal(tpm.index,mdata['isoform'].var_names)
         assert np.array_equal(tpm.columns,mdata['isoform'].obs_names)
+        mdata['isoform'].layers['count'] = mdata['isoform'].X
         mdata['isoform'].layers['tpm'] = tpm.T
 
-    ## if count and TPM file based on reference exists, add it as a mod in mdata
+     ## if the reference db exists, add corresponding annotation to the reference_isoform var 
+    genedb = 'results/isoquant_output/geneannotations.db'
+    if os.path.exists(genedb):
+        gene_dict, transcript_dict = parse_gtf(gtffile,genedb)
+
+
+    reference_isoform = None
+    ## if transcripts count and TPM file based on reference exists, add it as a mod in mdata
     count_tsv = transcript_count_file.replace('.transcript_model_grouped_counts_linear.tsv', '.transcript_grouped_counts.tsv')
     tpm_tsv = transcript_count_file.replace('.transcript_model_grouped_counts_linear.tsv', '.transcript_grouped_tpm.tsv')
     if np.logical_and(os.path.exists(tpm_file) , os.path.exists(count_tsv)):
         adata = make_count_adata(count_tsv, tpm_tsv)
         adata = adata[mdata.obs_names,:]
         assert np.array_equal(adata.obs_names, mdata.obs_names)
-        reference_isoform = adata[mdata.obs_names,:]
+        reference_isoform = adata[mdata.obs_names,:]  
 
-        new_mdata = MuData({
-        'gene': mdata.mod['gene'].copy(),
-        'isoform': mdata.mod['isoform'].copy(),
-        'reference_isoform': reference_isoform})
-        mdata = new_mdata
+        if transcript_dict is not None:
+            transcript_var_df = pd.DataFrame.from_dict(transcript_dict, orient='index')
+    
+            transcript_var_df = transcript_var_df.loc[reference_isoform.var_names,:]
+            assert np.array_equal(transcript_var_df.index, reference_isoform.var_names)
+            reference_isoform.var = transcript_var_df
+
+
+    reference_gene = None
+    ## if gene count and TPM file based on reference exists, add it as a mod in mdata
+    count_tsv = transcript_count_file.replace('.transcript_model_grouped_counts_linear.tsv', '.gene_grouped_counts.tsv')
+    tpm_tsv = transcript_count_file.replace('.transcript_model_grouped_counts_linear.tsv', '.gene_grouped_tpm.tsv')
+    if np.logical_and(os.path.exists(tpm_file) , os.path.exists(count_tsv)):
+        adata = make_count_adata(count_tsv, tpm_tsv)
+        adata = adata[mdata.obs_names,:]
+        assert np.array_equal(adata.obs_names, mdata.obs_names)
+        reference_gene = adata[mdata.obs_names,:]
+
+        if gene_dict is not None:
+            gene_var_df = pd.DataFrame.from_dict(gene_dict, orient='index')
+    
+            gene_var_df = gene_var_df.loc[reference_gene.var_names,:]
+            assert np.array_equal(gene_var_df.index, reference_gene.var_names)
+            reference_gene.var = gene_var_df
+
+    mods = {
+    'gene': mdata.mod['gene'].copy(),
+    'isoform': mdata.mod['isoform'].copy()
+    }
+    if reference_gene is not None:
+        mods['reference_gene'] = reference_gene
+    if reference_isoform is not None:
+        mods['reference_isoform'] = reference_isoform
+
+    mdata = MuData(mods)
     
     Path('/'.join(outfile.split('/')[:-1])).mkdir(parents=True, exist_ok=True)
 
