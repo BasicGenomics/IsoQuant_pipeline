@@ -16,6 +16,8 @@ import gffutils
 from pathlib import Path
 import polars as pl
 import logging
+import cPickle
+
 
 class SafeUnpickler(pickle.Unpickler):
     def find_class(self, module, name):
@@ -87,6 +89,7 @@ class isoquantViewer:
         self.parse_input_gtf(use_ref=False)
 
         self.get_assignment_df()
+
 
     def _load_params_file(self):
         """Load the .params file for necessary configuration and commands. From IsoQuant code."""

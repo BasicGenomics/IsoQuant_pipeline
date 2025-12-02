@@ -8,7 +8,6 @@ from pygenometracks.tracks.BigWigTrack import BigWigTrack
 from pygenometracks.tracks.GtfTrack import GtfTrack
 from pygenometracks.tracks.ScaleBarTrack import ScaleBarTrack
 from pygenometracks.tracks.BedTrack import BedTrack
-import mudata
 
 from pybedtools import BedTool
 import math
@@ -16,8 +15,6 @@ import os
 import logging
 from default_tracks import bed_props, gtf_props, ref_props, bam_props
 from pathlib import Path
-
-from isoquantViewer import isoquantViewer
 
 def plot_pie_assignment(
     obj,
@@ -415,7 +412,7 @@ def genomic_formatter(x, pos):
     return f"{int(x):,}"
 
 def plot_genomic_region(
-        obj:isoquantViewer|str,
+        obj: isoquantViewer | Path),
         region: Optional[str] = None,
         Ensembl_ID:Optional[str] = None,
         gene_name: Optional[str] = None,
@@ -454,42 +451,34 @@ def plot_genomic_region(
 
     if (region is None) and (Ensembl_ID is None) and (gene_name is None):
         raise ValueError(f"Need to provide either region,Ensembl_ID or gene_names")
-    
-    if isinstance(obj,str):
-        if os.path.exists(obj):
-            mdata = mudata.read_h5ad(obj)
-            
-        else:
-            mdata = obj.mdata
-            
 
     if region is None:
         if gene_name is not None: ### check in reference first, if doesnt exist go to the transcript model
-            b00l = np.isin(mdata['reference_gene'].var['name'],[gene_name])
+            b00l = np.isin(obj.mdata['reference_gene'].var['name'],[gene_name])
             if np.sum(b00l) == 0: 
-                b00l_1 = np.isin(mdata['gene'].var['name'],[gene_name])
+                b00l_1 = np.isin(obj.mdata['gene'].var['name'],[gene_name])
                 if np.sum(b00l_1) == 0: 
                     raise ValueError(f"Can not find {gene_name} in either reference_gene.var or gene.var")
                 else:
-                    Ensembl_ID = mdata['gene'].var.loc[b00l_1,:].index.values[0]
+                    Ensembl_ID = obj.mdata['gene'].var.loc[b00l_1,:].index.values[0]
                     if np.sum(b00l_1)>1:
                         logging.info(f'More than one entry identified for {gene_name}, proceed with the entry with Ensembl ID: {Ensembl_ID}.')
                     # entry = obj.gene_dict_model.get(Ensembl_ID)
-                    entry = mdata['gene'].var.loc[Ensembl_ID,:]
+                    entry = obj.mdata['gene'].var.loc[Ensembl_ID,:]
             else:
-                Ensembl_ID = mdata['reference_gene'].var.loc[b00l,:].index.values[0]
+                Ensembl_ID = obj.mdata['reference_gene'].var.loc[b00l,:].index.values[0]
                 if np.sum(b00l)>1:
                         logging.info(f'More than one entry identified for {gene_name}, proceed with the entry with Ensembl ID: {Ensembl_ID}.')
                 # entry = obj.gene_dict_ref.get(Ensembl_ID)
-                entry = mdata['reference_gene'].var.loc[Ensembl_ID,:]
+                entry = obj.mdata['reference_gene'].var.loc[Ensembl_ID,:]
 
         elif Ensembl_ID is not None:
             
             # entry = obj.gene_dict_ref.get(Ensembl_ID)
-            entry = mdata['reference_gene'].var.loc[Ensembl_ID,:]
+            entry = obj.mdata['reference_gene'].var.loc[Ensembl_ID,:]
             if entry is None:
                 # entry = obj.gene_dict_model.get(Ensembl_ID)
-                entry = mdata['gene'].var.loc[Ensembl_ID,:]
+                entry = obj.mdata['gene'].var.loc[Ensembl_ID,:]
                 if entry is None:
                     #  raise ValueError(f"Can not find {Ensembl_ID} in either reference (gene_dict_ref) or transcript model (gene_dict_model).")
                     raise ValueError(f"Can not find {Ensembl_ID} in either reference (reference_gene.var) or transcript model (gene.var)")
