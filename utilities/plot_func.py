@@ -16,7 +16,8 @@ import os
 import logging
 from default_tracks import bed_props, gtf_props, ref_props, bam_props
 from pathlib import Path
-
+import gffutils
+from gffutils.exceptions import FeatureNotFoundError
 from isoquantViewer import isoquantViewer
 
 def plot_pie_assignment(
@@ -224,7 +225,6 @@ def plot_count_bar(obj,
 
 # --- helper function for plot_transcript_map, plot one gene per ax ---
 def _draw_gene_on_ax(ax,
-    obj,
     gene_id:str,
     gene_data: Dict,
     show_xlabel: bool = False,
@@ -303,8 +303,80 @@ def _draw_gene_on_ax(ax,
     else:
         ax.set_xlabel("")
 
+def _plot_transcript_map_helper(obj:isoquantViewer|str,
+            use_transcript_model:bool=False,
+            Ensembl_ID:List[str]=None,
+            gene_names:List[str]=None):
+        
+        if isinstance(obj,str):
+            if os.path.exists(obj):
+                mdata = mudata.read_h5ad(obj) 
 
-def plot_transcript_map(obj,
+        elif isinstance(obj,isoquantViewer) and hasattr(obj, "mdata"):
+            mdata = obj.mdata 
+
+             # --- loading gene dict ---
+            if use_transcript_model:
+                # if not hasattr(obj, "gene_dict_model"):
+                #     obj.parse_input_gtf(use_ref=False)
+                if not os.path.exists(obj.genedb_filename_model):
+                    obj.create_db(use_ref=False)
+                    db = gffutils.FeatureDB(obj.genedb_filename_model)
+                    
+                # gene_dict = obj.gene_dict_model
+                dname = 'transcript model databse'
+            else:  
+                # if not hasattr(obj, "gene_dict_ref"):
+                #     obj.parse_input_gtf(use_ref=True)
+
+                if not os.path.exists(obj.genedb_filename):
+                    obj.create_db(use_ref=True)
+                    db = gffutils.FeatureDB(obj.genedb_filename)
+
+                # gene_dict = obj.gene_dict_ref
+                dname = 'reference transcripts database'
+
+        else:
+            raise ValueError(f"Cant locate mdata.")
+        
+        if (Ensembl_ID is None) and (gene_names is None):
+            raise ValueError(f"Need to provide either  Ensembl_ID or gene_names.")
+
+        if gene_names is not None:
+            if use_transcript_model:
+                b00l = np.isin(mdata['gene'].var['name'],gene_names)
+                tmp_dict = mdata['gene'].var.loc[b00l,:]['name'].to_dict()
+                
+            else: 
+                b00l = np.isin(mdata['reference_gene'].var['name'],gene_names)
+                tmp_dict = mdata['reference_gene'].var.loc[b00l,:]['name'].to_dict()
+            
+            Ensembl_ID = list(tmp_dict.keys())
+
+            notin = np.isin(np.array(list(tmp_dict.values())),np.array(gene_names),invert=True)
+            notin = np.array(list(tmp_dict.values()))[notin]
+            if len(notin)>0:
+                logging.info(f'Skipping {notin}, not found in {dname} .var.')
+
+
+        # genes = [g for g in (Ensembl_ID or []) if g in gene_dict]
+        # if not genes:
+        #     if gene_names is not None:
+        #         raise ValueError(f"None of the provided gene_names were found in ({dname}).")
+        #     raise ValueError(f"None of the provided Ensembl_ID were found in ({dname}).")
+
+        # notin = np.isin(np.array(Ensembl_ID),np.array(genes),invert=True)
+        # notin = np.array(Ensembl_ID)[notin]
+        # if len(notin)>0:
+        #     if gene_names is not None:
+        #         notin = [tmp_dict[i] for i in notin]
+        #     logging.info(f'Skipping {notin}, as they are not in the ({dname}).')
+
+        return Ensembl_ID,db
+
+
+def plot_transcript_map(
+            obj:isoquantViewer|str,
             use_transcript_model:bool=False,
             Ensembl_ID:List[str]=None,
             gene_names:List[str]=None,
@@ -322,54 +394,11 @@ def plot_transcript_map(obj,
         """
         # Adapted from IsoQuant PlotOutputs.py  
 
-        # --- loading gene dict ---
-        if use_transcript_model:
-            if not hasattr(obj, "gene_dict_model"):
-                obj.parse_input_gtf(use_ref=False)
-                
-            gene_dict = obj.gene_dict_model
-            dname = 'transcript model (.gene_dict_model)'
-        else:  
-            if not hasattr(obj, "gene_dict_ref"):
-                obj.parse_input_gtf(use_ref=True)
+        Ensembl_ID_,db = _plot_transcript_map_helper(obj,use_transcript_model,Ensembl_ID,gene_names)
+        
 
-            gene_dict = obj.gene_dict_ref
-            dname = 'reference transcripts (.gene_dict_ref)'
-
-        if (Ensembl_ID is None) and (gene_names is None):
-            raise ValueError(f"Need to provide either  Ensembl_ID or gene_names.")
-
-        if gene_names is not None:
-            if use_transcript_model:
-                b00l = np.isin(obj.mdata['gene'].var['name'],gene_names)
-                tmp_dict = obj.mdata['gene'].var.loc[b00l,:]['name'].to_dict()
-                
-            else: 
-                b00l = np.isin(obj.mdata['reference_gene'].var['name'],gene_names)
-                tmp_dict = obj.mdata['reference_gene'].var.loc[b00l,:]['name'].to_dict()
-            
-            Ensembl_ID = list(tmp_dict.keys())
-
-            notin = np.isin(np.array(list(tmp_dict.values())),np.array(gene_names),invert=True)
-            notin = np.array(list(tmp_dict.values()))[notin]
-            if len(notin)>0:
-                logging.info(f'Skipping {notin}, not found in {dname} .var.')
-
-        genes = [g for g in (Ensembl_ID or []) if g in gene_dict]
-        if not genes:
-            if gene_names is not None:
-                raise ValueError(f"None of the provided gene_names were found in ({dname}).")
-            raise ValueError(f"None of the provided Ensembl_ID were found in ({dname}).")
-
-        notin = np.isin(np.array(Ensembl_ID),np.array(genes),invert=True)
-        notin = np.array(Ensembl_ID)[notin]
-        if len(notin)>0:
-            if gene_names is not None:
-                notin = [tmp_dict[i] for i in notin]
-            logging.info(f'Skipping {notin}, as they are not in the ({dname}).')
-
-        for g in genes:
-            n_tx = len(gene_dict[g]["transcripts"])
+        for g in Ensembl_ID_:
+            n_tx = len(db[g]["transcripts"])
             total_height = max(3.0, n_tx * 0.3)
 
 
@@ -379,15 +408,14 @@ def plot_transcript_map(obj,
 
             _draw_gene_on_ax(
                 ax=ax,
-                obj=obj,
                 gene_id = g,
-                gene_data=gene_dict[g],
+                gene_data=db[g],
                 show_xlabel=True,
                 strand_markers=True,
             )
 
             ax.set_frame_on(False)
-            ax.set_xlim(gene_dict[g]["start"], gene_dict[g]["end"])
+            ax.set_xlim(db[g]["start"], db[g]["end"])
 
 
             if savefig:
@@ -457,11 +485,12 @@ def plot_genomic_region(
     
     if isinstance(obj,str):
         if os.path.exists(obj):
-            mdata = mudata.read_h5ad(obj)
-            
-        else:
-            mdata = obj.mdata
-            
+            mdata = mudata.read_h5ad(obj)   
+    elif isinstance(obj,isoquantViewer) and hasattr(obj, "mdata"):
+        mdata = obj.mdata
+    else:
+        raise ValueError(f"Cant locate mdata.")
+
 
     if region is None:
         if gene_name is not None: ### check in reference first, if doesnt exist go to the transcript model

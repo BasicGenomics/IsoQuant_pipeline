@@ -83,10 +83,12 @@ class isoquantViewer:
 
         self.transcript_model = f'{self.output_directory}/{self.prefix}/{self.prefix}.transcript_models.gtf'
 
+        self.genedb_filename_model = f'{self.output_directory}/{self.prefix}/{self.prefix}.transcript_models.db'
+
         self._load_params_file()
 
-        self.parse_input_gtf(use_ref=True)
-        self.parse_input_gtf(use_ref=False)
+        self.create_db(use_ref=True)
+        self.create_db(use_ref=False)
 
         self.get_assignment_df()
 
@@ -115,26 +117,18 @@ class isoquantViewer:
             
         self.referene_gtf = self.referene_gtf or params.get("genedb")
 
-    def parse_input_gtf(self,use_ref:bool=False,
-                        return_gene_dict:bool = False):
-        """Parses the GTF file using gffutils to build a detailed dictionary of genes, transcripts, and exons.
+    def create_db(self,use_ref:bool=False):
+        """Creating database based on GTF file using gffutils.
         Parameters:
         -----------
         use_ref: bool
             If True, parse the reference GTF; if False, parse the transcript model GTF.
-        return_gene_dict: bool
-            If True, return the constructed gene dictionary.
-        Returns:
-        --------
-        gene_dict: dict
-            A nested dictionary containing gene, transcript, and exon information."""
+        """
 
         if use_ref:
-            logging.info("Parsing: reference GTF file")
-            if not self.genedb_filename:
+            logging.info("Creating reference GTF database")
+            if not os.path.exists(self.genedb_filename):
                 # convert GTF to DB if we use previous IsoQuant runs
-                tmp_file = tempfile.NamedTemporaryFile(suffix=".db")
-                self.genedb_filename = tmp_file.name
                 input_gtf_path = self.referene_gtf
                 gffutils.create_db(
                     input_gtf_path,
@@ -147,38 +141,38 @@ class isoquantViewer:
                     disable_infer_transcripts=True,
                 )
     
-            try:
-                # Create a database without using a context manager
-                db = gffutils.FeatureDB(self.genedb_filename, keep_order=True)  # read-only
+            # try:
+            #     # Create a database without using a context manager
+            #     db = gffutils.FeatureDB(self.genedb_filename, keep_order=True)  # read-only
     
-                gene_dict = self._create_db_genedict(db)
+            #     gene_dict = self._create_db_genedict(db)
     
-                self.gene_dict_ref = gene_dict
+            #     self.gene_dict_ref = gene_dict
     
-            except Exception as e:
-                raise Exception(f"Error parsing GTF file: {str(e)}")
+            # except Exception as e:
+            #     raise Exception(f"Error parsing GTF file: {str(e)}")
 
         else:
-            logging.info("Parsing: transcript model GTF file")
-            tmp_file = tempfile.NamedTemporaryFile(suffix=".db")
-            db = gffutils.create_db(
-                            self.transcript_model,
-                            dbfn=tmp_file.name,
-                            force=True,
-                            keep_order=True,
-                            merge_strategy="merge",
-                            sort_attribute_values=True,
-                            disable_infer_genes=True,
-                            disable_infer_transcripts=True,
-                        )
+            logging.info("Creating transcript model GTF database")
+            if not os.path.exists(self.genedb_filename):
+                gffutils.create_db(
+                                self.transcript_model,
+                                dbfn=self.genedb_filename_model,
+                                force=True,
+                                keep_order=True,
+                                merge_strategy="merge",
+                                sort_attribute_values=True,
+                                disable_infer_genes=True,
+                                disable_infer_transcripts=True,
+                            )
 
 
-            gene_dict = self._create_db_genedict(db)
+            # gene_dict = self._create_db_genedict(db)
     
-            self.gene_dict_model = gene_dict
+            # self.gene_dict_model = gene_dict
     
-        if return_gene_dict:
-            return gene_dict
+        # if return_gene_dict:
+        #     return gene_dict
         
 
     def get_assignment_df(self,
@@ -236,7 +230,10 @@ class isoquantViewer:
         """Generate a transcript-level count file formatted for DRIMSeq analysis."""
     
         transcript_dict ={}
-        for _, vals in self.gene_dict_model.items():
+
+        db = gffutils.FeatureDB(self.genedb_filename_model)
+        gene_dict = self._create_db_genedict(db)
+        for _, vals in gene_dict.items():
             for t, val_t in vals['transcripts'].items():
                 transcript_dict[t] = val_t
     
@@ -365,6 +362,77 @@ class isoquantViewer:
     
         # --- PASS 3: exons
         for e in db.features_of_type("exon"):
+            attrs = e.attributes
+            tid = (attrs.get("transcript_id") or [None])[0]
+            if tid is None:
+                continue
+            gid = t2g.get(tid)
+            if gid is None:
+                continue 
+            gene_dict[gid]["transcripts"][tid]["exons"].append({
+                "exon_id": e.id,
+                "start": e.start,
+                "end": e.end,
+                "number": (attrs.get("exon_number") or [""])[0],
+            })
+        return gene_dict
+    
+
+def create_db_genedict_from_geneid(geneid,db_filename):
+        """Create a nested dictionary from a gffutils FeatureDB.
+        Parameters:         
+        -----------
+        db: gffutils.FeatureDB
+            The gffutils FeatureDB object to parse.     
+        Returns:    
+        --------
+        gene_dict: dict
+            A nested dictionary containing gene, transcript, and exon information.
+        """
+
+        db = gffutils.FeatureDB(db_filename)
+
+        gene_dict = {}
+    
+        # --- PASS 1: genes
+        attrs = geneid.attributes
+        gene_dict[geneid.id] = {
+            "chromosome": geneid.seqid,
+            "start": geneid.start,
+            "end": geneid.end,
+            "strand": geneid.strand,
+            "name": (attrs.get("gene_name") or [""])[0],
+            "biotype": (attrs.get("gene_biotype") or [""])[0],
+            "transcripts": {},
+        }
+    
+        # --- PASS 2: transcripts
+        t2g = {}
+        transcript = db.children(geneid, featuretype='transcript')
+
+        for t in transcript:
+            attrs = t.attributes
+            gene_id = (attrs.get("gene_id") or [None])[0]
+            if gene_id is None:
+                parents = list(db.parents(t, featuretype="gene"))
+                gene_id = parents[0].id if parents else None
+            if gene_id is None or gene_id not in gene_dict:
+                continue  
+    
+            t2g[t.id] = gene_id
+            gene_dict[gene_id]["transcripts"][t.id] = {
+                "start": t.start,
+                "end": t.end,
+                "name": (attrs.get("transcript_name") or [""])[0],
+                "biotype": (attrs.get("transcript_biotype") or [""])[0],
+                "exons": [],
+                "tags": ((attrs.get("tag") or [""])[0]).split(","),
+                'gene_id':gene_id
+            }
+    
+        # --- PASS 3: exons
+        exon = db.children(geneid, featuretype='exon')
+        for e in exon:
             attrs = e.attributes
             tid = (attrs.get("transcript_id") or [None])[0]
             if tid is None:

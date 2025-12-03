@@ -66,6 +66,7 @@ plot_transcript_map <- function(use_transcript_model = FALSE,
 
 
 plot_genomic_region <- function(
+    mudata_path = "",
     region       = NULL,
     Ensembl_ID   = NULL,
     gene_name    = NULL,
@@ -79,7 +80,9 @@ plot_genomic_region <- function(
     save_format    = "png") {
 
         plot_func <- reticulate::import("../plot_func")
-        plot_func$plot_genomic_region(region = region,
+        plot_func$plot_genomic_region(
+            obj = mudata_path,
+            region = region,
             Ensembl_ID = Ensembl_ID,
             gene_name = gene_name,
             plot_tracks = plot_tracks,
