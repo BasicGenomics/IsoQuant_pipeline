@@ -18,7 +18,7 @@ from default_tracks import bed_props, gtf_props, ref_props, bam_props
 from pathlib import Path
 import gffutils
 from gffutils.exceptions import FeatureNotFoundError
-from isoquantViewer import isoquantViewer
+from isoquantViewer import isoquantViewer,create_db_genedict_from_geneid
 
 def plot_pie_assignment(
     obj,
@@ -30,11 +30,46 @@ def plot_pie_assignment(
     save_format:str='png',
     return_data:bool=False
 ):
+    
 
-    df = obj.reads_assignment
-    count = df[feature_to_plot].value_counts()
+    if hasattr(obj, "reads_assignment"):
+        obj.get_assignment_df()
+        df = obj.reads_assignment
+        count = df[feature_to_plot].value_counts()
+        
+
+    else:
+        import polars as pl
+        import gzip
+
+        read_assign_fname =  f'{obj.output_directory}/{obj.prefix}/{obj.prefix}.read_assignments.tsv.gz'
+        with gzip.open(read_assign_fname, "rt") as f:
+            comment_lines = []
+            for line in f:
+                if line.startswith("#"):
+                    comment_lines.append(line)
+                else:
+                    break
+    
+        header = comment_lines[-1].lstrip("#").strip().split()
+        n_comment_lines = len(comment_lines)
+        scan = pl.scan_csv(
+        read_assign_fname,
+        separator="\t",
+        has_header=False,
+        new_columns=header,
+        comment_prefix="#",      
+        infer_schema_length=0,
+    )
+        scan = scan.with_columns(
+            pl.col("additional_info").str.extract(rf"(?:^|;){feature_to_plot}=([^;]*)", 1).alias(f"{feature_to_plot}")
+        )
+
+        count = scan.select(pl.col(f"{feature_to_plot}").value_counts()).unnest(f"{feature_to_plot}").collect(engine = "streaming")
+    
     labels = count[feature_to_plot].to_list()
     sizes = count['count'].to_list()
+   
 
     total = sum(sizes)
     percentages = [(s / total) * 100 for s in sizes]
@@ -308,33 +343,23 @@ def _plot_transcript_map_helper(obj:isoquantViewer|str,
             Ensembl_ID:List[str]=None,
             gene_names:List[str]=None):
         
+        if use_transcript_model:
+            if not os.path.exists(obj.genedb_filename_model):
+                obj.create_db(use_ref=True)
+            db = gffutils.FeatureDB(obj.genedb_filename_model)
+            dname = 'transcript model databse'
+        else:
+            if not os.path.exists(obj.genedb_filename):
+                obj.create_db(use_ref=False)
+            db = gffutils.FeatureDB(obj.genedb_filename)
+            dname = 'reference transcripts database'
+        
         if isinstance(obj,str):
             if os.path.exists(obj):
-                mdata = mudata.read_h5ad(obj) 
+                mdata = mudata.read_h5ad(obj)
 
-        elif isinstance(obj,isoquantViewer) and hasattr(obj, "mdata"):
+        elif hasattr(obj, "mdata"):
             mdata = obj.mdata 
-
-             # --- loading gene dict ---
-            if use_transcript_model:
-                # if not hasattr(obj, "gene_dict_model"):
-                #     obj.parse_input_gtf(use_ref=False)
-                if not os.path.exists(obj.genedb_filename_model):
-                    obj.create_db(use_ref=False)
-                    db = gffutils.FeatureDB(obj.genedb_filename_model)
-                    
-                # gene_dict = obj.gene_dict_model
-                dname = 'transcript model databse'
-            else:  
-                # if not hasattr(obj, "gene_dict_ref"):
-                #     obj.parse_input_gtf(use_ref=True)
-
-                if not os.path.exists(obj.genedb_filename):
-                    obj.create_db(use_ref=True)
-                    db = gffutils.FeatureDB(obj.genedb_filename)
-
-                # gene_dict = obj.gene_dict_ref
-                dname = 'reference transcripts database'
 
         else:
             raise ValueError(f"Cant locate mdata.")
@@ -398,7 +423,8 @@ def plot_transcript_map(
         
 
         for g in Ensembl_ID_:
-            n_tx = len(db[g]["transcripts"])
+            gene_dict = create_db_genedict_from_geneid(g,db)
+            n_tx = len(gene_dict[g]["transcripts"])
             total_height = max(3.0, n_tx * 0.3)
 
 
@@ -409,13 +435,13 @@ def plot_transcript_map(
             _draw_gene_on_ax(
                 ax=ax,
                 gene_id = g,
-                gene_data=db[g],
+                gene_data=gene_dict[g],
                 show_xlabel=True,
                 strand_markers=True,
             )
 
             ax.set_frame_on(False)
-            ax.set_xlim(db[g]["start"], db[g]["end"])
+            ax.set_xlim(gene_dict[g]["start"], gene_dict[g]["end"])
 
 
             if savefig:
@@ -525,7 +551,7 @@ def plot_genomic_region(
 
 
         chrom, start, end = entry['chromosome'],entry['start'],entry['end']
-        region_str = f'{chrom}:{start}-{end}'
+        region_str = f'{chrom}:{int(start)}-{int(end)}'
         start-=padding
         end+=padding
     
@@ -538,7 +564,9 @@ def plot_genomic_region(
     plot_reads = False
 
     gtf_ref = obj.referene_gtf
+    print('gtf_ref:',gtf_ref)
     gtf_model = obj.transcript_model
+    print('gtf_model:',gtf_model)
     bedfile = f'{obj.output_directory}/{obj.prefix}/{obj.prefix}.corrected_reads.bed.gz'
 
     if 'ref' in plot_tracks: 
@@ -565,10 +593,10 @@ def plot_genomic_region(
     tmp_gtf_model = 'model.slice.gtf'
     tmp_bed = 'reads.slice.bed'
    
-    str_ = f'{chrom} {start} {end}'
+    str_ = f'{chrom} {int(start)} {int(end)}'
     region = BedTool(str_, from_string=True)
 
-
+    print('str: ',str_)
     if plot_ref is True:
         BedTool(gtf_ref).intersect(region).saveas(tmp_gtf_ref)
     if plot_model is True:

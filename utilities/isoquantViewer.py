@@ -16,8 +16,6 @@ import gffutils
 from pathlib import Path
 import polars as pl
 import logging
-import cPickle
-
 
 class SafeUnpickler(pickle.Unpickler):
     def find_class(self, module, name):
@@ -57,15 +55,18 @@ class isoquantViewer:
             Path to the MuData file containing counts and metadata. If not provided, it will be inferred from the output directory and prefix.
         """
         
-        self.output_directory = output_directory
+        self.output_directory = Path(output_directory).expanduser()
         self.prefix = prefix
         self.referene_gtf = referene_gtf
         self.gene_db = gene_db
-        self.plot_output = f'{self.output_directory}/plot_output'
-        transcript_model_reads_fname = os.path.join(self.output_directory,f'{prefix}/{prefix}.transcript_model_reads.tsv.gz')
+        self.plot_output = self.output_directory/'plot_output'
+        self.plot_output = Path(self.plot_output).expanduser()
+        transcript_model_reads_fname = self.output_directory/f'{prefix}/{prefix}.transcript_model_reads.tsv.gz'
+        transcript_model_reads_fname = Path(transcript_model_reads_fname).expanduser()
 
         if mudata_path is None:
             mudata_path = Path(self.output_directory)/f"mudata/{prefix}_counts.h5mu"
+            mudata_path = mudata_path.expanduser()
         self.mdata= mudata.read_h5mu(mudata_path)
 
 
@@ -82,20 +83,23 @@ class isoquantViewer:
         self.transcript_model_reads.columns = header_line
 
         self.transcript_model = f'{self.output_directory}/{self.prefix}/{self.prefix}.transcript_models.gtf'
+        self.transcript_model = Path(self.transcript_model).expanduser()
 
         self.genedb_filename_model = f'{self.output_directory}/{self.prefix}/{self.prefix}.transcript_models.db'
+        self.genedb_filename_model = Path(self.genedb_filename_model).expanduser()
 
         self._load_params_file()
 
         self.create_db(use_ref=True)
         self.create_db(use_ref=False)
 
-        self.get_assignment_df()
+        # self.get_assignment_df()
 
 
     def _load_params_file(self):
         """Load the .params file for necessary configuration and commands. From IsoQuant code."""
-        params_path = os.path.join(self.output_directory, ".params")
+        params_path = self.output_directory/".params"
+        params_path = Path(params_path).expanduser()
         assert os.path.exists(params_path), f"Params file not found: {params_path}"
         try:
             with open(params_path, "rb") as f:
@@ -113,9 +117,11 @@ class isoquantViewer:
 
         self.genedb_filename = self.gene_db or params.get("genedb_filename")
         if os.path.exists(self.genedb_filename) == False:
-            self.genedb_filename = os.path.join(self.output_directory,'geneannotations.db')
+            self.genedb_filename = self.output_directory/'geneannotations.db'
+            self.genedb_filename = Path(self.genedb_filename).expanduser()
             
         self.referene_gtf = self.referene_gtf or params.get("genedb")
+        self.referene_gtf = Path(self.referene_gtf).expanduser()
 
     def create_db(self,use_ref:bool=False):
         """Creating database based on GTF file using gffutils.
@@ -126,13 +132,13 @@ class isoquantViewer:
         """
 
         if use_ref:
-            logging.info("Creating reference GTF database")
             if not os.path.exists(self.genedb_filename):
+                logging.info("Creating reference GTF database")
                 # convert GTF to DB if we use previous IsoQuant runs
-                input_gtf_path = self.referene_gtf
+                input_gtf_path = str(self.referene_gtf)
                 gffutils.create_db(
                     input_gtf_path,
-                    dbfn=self.genedb_filename,
+                    dbfn=str(self.genedb_filename),
                     force=True,
                     keep_order=True,
                     merge_strategy="merge",
@@ -153,11 +159,12 @@ class isoquantViewer:
             #     raise Exception(f"Error parsing GTF file: {str(e)}")
 
         else:
-            logging.info("Creating transcript model GTF database")
-            if not os.path.exists(self.genedb_filename):
+            if not os.path.exists(self.genedb_filename_model):
+                logging.info("Creating transcript model GTF database")
+                input_gtf_path = str(self.transcript_model)
                 gffutils.create_db(
-                                self.transcript_model,
-                                dbfn=self.genedb_filename_model,
+                                input_gtf_path,
+                                dbfn=str(self.genedb_filename_model),
                                 force=True,
                                 keep_order=True,
                                 merge_strategy="merge",
@@ -209,7 +216,7 @@ class isoquantViewer:
         separator="\t",
         has_header=False,
         new_columns=header,
-        comment_prefix="#",      # supported in Polars
+        comment_prefix="#",      
         infer_schema_length=0,
     )
 
@@ -378,7 +385,8 @@ class isoquantViewer:
         return gene_dict
     
 
-def create_db_genedict_from_geneid(geneid,db_filename):
+def create_db_genedict_from_geneid(geneid,
+                                   db):
         """Create a nested dictionary from a gffutils FeatureDB.
         Parameters:         
         -----------
@@ -389,18 +397,18 @@ def create_db_genedict_from_geneid(geneid,db_filename):
         gene_dict: dict
             A nested dictionary containing gene, transcript, and exon information.
         """
-
-        db = gffutils.FeatureDB(db_filename)
-
+        
+        gene = db[geneid]
+       
         gene_dict = {}
     
         # --- PASS 1: genes
-        attrs = geneid.attributes
-        gene_dict[geneid.id] = {
-            "chromosome": geneid.seqid,
-            "start": geneid.start,
-            "end": geneid.end,
-            "strand": geneid.strand,
+        attrs = gene.attributes
+        gene_dict[gene.id] = {
+            "chromosome": gene.seqid,
+            "start": gene.start,
+            "end": gene.end,
+            "strand": gene.strand,
             "name": (attrs.get("gene_name") or [""])[0],
             "biotype": (attrs.get("gene_biotype") or [""])[0],
             "transcripts": {},

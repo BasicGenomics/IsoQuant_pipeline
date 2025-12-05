@@ -1760,27 +1760,38 @@ the chunk or by placing your cursor inside it and pressing
 <em>Cmd+Shift+Enter</em>.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1zb3VyY2UtYmVnaW4gZXlKa1lYUmhJam9pWUdCZ2NseHVjblJ5WVdOcmJHRjVaWEpjYmx4dVlHQmdJbjA9IC0tPlxuXG5gYGByXG5ydHJhY2tsYXllclxuXG5gYGBcblxuPCEtLSBybmItc291cmNlLWVuZCAtLT5cbiJ9 -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucnRyYWNrbGF5ZXJcblxuYGBgIn0= -->
-<pre class="r"><code>rtracklayer
+<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1zb3VyY2UtYmVnaW4gZXlKa1lYUmhJam9pWUdCZ2NseHViR2xpY21GeWVTZ25jbWhrWmpVbktWeHViR2xpY21GeWVTZ25jblJ5WVdOcmJHRjVaWEluS1Z4dVhHNWdZR0FpZlE9PSAtLT5cblxuYGBgclxubGlicmFyeSgncmhkZjUnKVxubGlicmFyeSgncnRyYWNrbGF5ZXInKVxuXG5gYGBcblxuPCEtLSBybmItc291cmNlLWVuZCAtLT5cbiJ9 -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeSgncmhkZjUnKVxubGlicmFyeSgncnRyYWNrbGF5ZXInKVxuXG5gYGAifQ== -->
+<pre class="r"><code>library(&#39;rhdf5&#39;)
+library(&#39;rtracklayer&#39;)
 </code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3I6IG9iamVjdCAncnRyYWNrbGF5ZXInIG5vdCBmb3VuZFxuIn0= -->
-<pre><code>Error: object &#39;rtracklayer&#39; not found</code></pre>
 <!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1mcmFtZS1iZWdpbiBleUp0WlhSaFpHRjBZU0k2ZXlKamJHRnpjMlZ6SWpwYkltUmhkR0V1Wm5KaGJXVWlYU3dpYm5KdmR5STZOeXdpYm1OdmJDSTZNU3dpYzNWdGJXRnllU0k2ZXlKRVpYTmpjbWx3ZEdsdmJpSTZXeUprWmlCYk55RERseUF4WFNKZGZYMHNJbkprWmlJNklrZzBjMGxCUVVGQlFVRkJRVUV6TWxKMlZUZEVUVUpFU0V3NU9VdEtSa0ZzUW1ocWVrRnZOVUZNVDNoVmFrRjRPRk5PTUhGck5XZFJSV00yVWpRMVlVOVFRVEY2YmpSRlNFczVhVTk2WlVGWFZISktPSFowTHpsNk0yWXlNMWg0ZUZkVGQwdEJTV2RuVkd0TFNVVjFWa000ZG1oM1VUWTBRVFJzUVdSQmIyZG9NUzkwUjBwYU1sbEJUVUpOY21ONVF6QXZTM2RMWVZSNFYyWnRNVXBoVW14NVVEZHBNbTVUVDBaQ1ZFaFhibE5FTTA5amJUVTFUMUUyTDI0NVVXSXphbUpOVUhoUWVqVkxTM1ZUZVRWbk0waG1ZamRXYmtFNFZFeHlNelZGTmxKMllreFRlblV5UkdWemVsaHlZbmhZZUhOdVVFSXplWFZ1VDBaSmNpOUJRbXB0VmlzeU4zVnViMng1TUdGTGJXNHhURVY0WkRKSWJWTnFRU3Q1TkRab1JXOW1ObEF4UWsxSWQyZDJUVlp4WnpkaFZXbzVjM05LV0dOdVNIVTRWMnBCVm13NWNTOTRXbk40T0VoVk4yRTRabFJITWtVek1XRmxWMjV1UzNOUE1sRjFXR3cySzNOU05sWTNiR2hoSzNObGNYZGplRGN4UlU1dmExQndRbXhZVW5OYVNtTlZhV053WVhRMk4ybENhMlJrYWpoWk9ITjFjSEJSU1VGQlFUMDlJbjA9IC0tPlxuXG48ZGl2IGRhdGEtcGFnZWR0YWJsZT1cImZhbHNlXCI+XG4gIDxzY3JpcHQgZGF0YS1wYWdlZHRhYmxlLXNvdXJjZSB0eXBlPVwiYXBwbGljYXRpb24vanNvblwiPlxue1wiY29sdW1uc1wiOlt7XCJsYWJlbFwiOltcImxldmVsTmFtZVwiXSxcIm5hbWVcIjpbMV0sXCJ0eXBlXCI6W1wiY2hyXCJdLFwiYWxpZ25cIjpbXCJsZWZ0XCJdfV0sXCJkYXRhXCI6W3tcIjFcIjpcIlwifSx7XCIxXCI6XCLCsC0tZ2VuZVwifSx7XCIxXCI6XCLCsC0tdHJhbnNjcmlwdFwifSx7XCIxXCI6XCLCpi0tQ0RTXCJ9LHtcIjFcIjpcIsKmLS1leG9uXCJ9LHtcIjFcIjpcIsKmLS1zdGFydF9jb2RvblwifSx7XCIxXCI6XCLCsC0tc3RvcF9jb2RvblwifV0sXCJvcHRpb25zXCI6e1wiY29sdW1uc1wiOntcIm1pblwiOnt9LFwibWF4XCI6WzEwXSxcInRvdGFsXCI6WzFdfSxcInJvd3NcIjp7XCJtaW5cIjpbMTBdLFwibWF4XCI6WzEwXSxcInRvdGFsXCI6WzddfSxcInBhZ2VzXCI6e319fVxuICA8XC9zY3JpcHQ+XG48XC9kaXY+XG5cbjwhLS0gcm5iLWZyYW1lLWVuZCAtLT5cbiJ9 -->
-<!-- rnb-frame-begin eyJtZXRhZGF0YSI6eyJjbGFzc2VzIjpbImRhdGEuZnJhbWUiXSwibnJvdyI6NywibmNvbCI6MSwic3VtbWFyeSI6eyJEZXNjcmlwdGlvbiI6WyJkZiBbNyDDlyAxXSJdfX0sInJkZiI6Ikg0c0lBQUFBQUFBQUEzMlJ2VTdETUJESEw5OUtKRkFsQmhqekFvNUFMT3hVakF4OFNOMHFrNWdRRWM2UjQ1YU9QQTF6bjRFSEs5aU96ZUFXVHJKOHZ0Lzl6M2YyM1h4eFdTd0tBSWdnVGtLSUV1VkM4dmh3UTY0QTRsQWRBb2doMS90R0paMllBTUJNcmN5QzAvS3dLYVR4V2ZtMUphUmx5UDdpMm5TT0ZCVEhXblNEM09jbTU1T1E2L245UWIzamJNUHhQejVLS3VTeTVnM0hmYjdWbkE4VExyMzVFNlJ2YkxTenUyRGVzelhyYnhYeHNuUEIzeXVuT0ZJci9BQmptVisyN3Vub2x5MGFLbW4xTEV4ZDJIbVNqQSt5NDZoRW9mNlAxQk1Id2d2TVZxZzdhVWo5c3NKWGNuSHU4V2pBVmw5cS94WnN4OEhVN2E4ZlRHMkUzMWFlV25uS3NPMlF1WGw2K3NSNlY3bGhhK3NlcXdjeDcxRU5va1BwQmxYUnNaSmNVaWNwYXQ2N2lCa2RkajhZOHN1cHBRSUFBQT09In0= -->
-<div data-pagedtable="false">
-<script data-pagedtable-source type="application/json">
-{"columns":[{"label":["levelName"],"name":[1],"type":["chr"],"align":["left"]}],"data":[{"1":""},{"1":"°--gene"},{"1":"°--transcript"},{"1":"¦--CDS"},{"1":"¦--exon"},{"1":"¦--start_codon"},{"1":"°--stop_codon"}],"options":{"columns":{"min":{},"max":[10],"total":[1]},"rows":{"min":[10],"max":[10],"total":[7]},"pages":{}}}
-  </script>
-</div>
-<!-- rnb-frame-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1zb3VyY2UtYmVnaW4gZXlKa1lYUmhJam9pWUdCZ2NseHViVzlrSUR3dElISmxkR2xqZFd4aGRHVTZPbk52ZFhKalpWOXdlWFJvYjI0b1hDSitMMFJ2WTNWdFpXNTBjeTluYVhSZmFIVmlMMmx6YjNGMVlXNTBMMGx6YjFGMVlXNTBYM0JwY0dWc2FXNWxMM1YwYVd4cGRHbGxjeTlwYzI5eGRXRnVkRlpwWlhkbGNpNXdlVndpS1Z4dVhHNWdZR0FpZlE9PSAtLT5cblxuYGBgclxubW9kIDwtIHJldGljdWxhdGU6OnNvdXJjZV9weXRob24oXCJ+L0RvY3VtZW50cy9naXRfaHViL2lzb3F1YW50L0lzb1F1YW50X3BpcGVsaW5lL3V0aWxpdGllcy9pc29xdWFudFZpZXdlci5weVwiKVxuXG5gYGBcblxuPCEtLSBybmItc291cmNlLWVuZCAtLT5cbiJ9 -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubW9kIDwtIHJldGljdWxhdGU6OnNvdXJjZV9weXRob24oXCJ+L0RvY3VtZW50cy9naXRfaHViL2lzb3F1YW50L0lzb1F1YW50X3BpcGVsaW5lL3V0aWxpdGllcy9pc29xdWFudFZpZXdlci5weVwiKVxuXG5gYGAifQ== -->
+<pre class="r"><code>mod &lt;- reticulate::source_python(&quot;~/Documents/git_hub/isoquant/IsoQuant_pipeline/utilities/isoquantViewer.py&quot;)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gcHlfcnVuX2ZpbGVfaW1wbChmaWxlLCBsb2NhbCwgY29udmVydCkgOiBcbiAgTW9kdWxlTm90Rm91bmRFcnJvcjogTm8gbW9kdWxlIG5hbWVkICdtdWRhdGEnXG5SdW4gYHJldGljdWxhdGU6OnB5X2xhc3RfZXJyb3IoKWAgZm9yIGRldGFpbHMuXG4ifQ== -->
+<pre><code>Error in py_run_file_impl(file, local, convert) : 
+  ModuleNotFoundError: No module named &#39;mudata&#39;
+Run `reticulate::py_last_error()` for details.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1zb3VyY2UtYmVnaW4gZXlKa1lYUmhJam9pWUdCZ2NseHVjbVZoWkhNZ1BTQmpLQ2RoY25KdmQyaGxZV1JmWm5KaFkzUnBiMjRuSUQwZ01DNDFLVnh1Y21WbUlEMGdJR01vSjJGeWNtOTNhR1ZoWkY5bWNtRmpkR2x2YmljZ1BTQXdMakVwWEc1MGNtRmphM05mY0dGeVlXMXpQU0JqS0NkeVpXRmtjeWNnUFNCeVpXRmtjeXduY21WbUp6MXlaV1lwWEc1Z1lHQWlmUT09IC0tPlxuXG5gYGByXG5yZWFkcyA9IGMoJ2Fycm93aGVhZF9mcmFjdGlvbicgPSAwLjUpXG5yZWYgPSAgYygnYXJyb3doZWFkX2ZyYWN0aW9uJyA9IDAuMSlcbnRyYWNrc19wYXJhbXM9IGMoJ3JlYWRzJyA9IHJlYWRzLCdyZWYnPXJlZilcbmBgYFxuXG48IS0tIHJuYi1zb3VyY2UtZW5kIC0tPlxuIn0= -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucmVhZHMgPSBjKCdhcnJvd2hlYWRfZnJhY3Rpb24nID0gMC41KVxucmVmID0gIGMoJ2Fycm93aGVhZF9mcmFjdGlvbicgPSAwLjEpXG50cmFja3NfcGFyYW1zPSBjKCdyZWFkcycgPSByZWFkcywncmVmJz1yZWYpXG5gYGAifQ== -->
+<pre class="r"><code>reads = c(&#39;arrowhead_fraction&#39; = 0.5)
+ref =  c(&#39;arrowhead_fraction&#39; = 0.1)
+tracks_params= c(&#39;reads&#39; = reads,&#39;ref&#39;=ref)</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
@@ -1795,7 +1806,7 @@ run any R code chunks. Instead, the output of the chunk when it was last
 run in the editor is displayed.</p>
 <!-- rnb-text-end -->
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiVmlzdWFsaXppbmcgSXNvcXVhbnQgb3V0cHV0IgpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sKLS0tCgpUaGlzIGlzIGFuIFtSIE1hcmtkb3duXShodHRwOi8vcm1hcmtkb3duLnJzdHVkaW8uY29tKSBOb3RlYm9vay4gV2hlbiB5b3UgZXhlY3V0ZSBjb2RlIHdpdGhpbiB0aGUgbm90ZWJvb2ssIHRoZSByZXN1bHRzIGFwcGVhciBiZW5lYXRoIHRoZSBjb2RlLiAKClRyeSBleGVjdXRpbmcgdGhpcyBjaHVuayBieSBjbGlja2luZyB0aGUgKlJ1biogYnV0dG9uIHdpdGhpbiB0aGUgY2h1bmsgb3IgYnkgcGxhY2luZyB5b3VyIGN1cnNvciBpbnNpZGUgaXQgYW5kIHByZXNzaW5nICpDbWQrU2hpZnQrRW50ZXIqLiAKCmBgYHtyfQpsaWJyYXJ5KCdyaGRmNScpCmxpYnJhcnkoJ3J0cmFja2xheWVyJykKCmBgYAoKYGBge3J9CmdmZl9maWxlID0gJ34vRG9jdW1lbnRzL2RhdGEvcnVucy9pc29xdWFudF9vdXRwdXQvUFIyMTEvUFIyMTEudHJhbnNjcmlwdF9tb2RlbHMuZ3RmJwoKZ2ZmIDwtIGltcG9ydChnZmZfZmlsZSkKCmBgYAoKCgpBZGQgYSBuZXcgY2h1bmsgYnkgY2xpY2tpbmcgdGhlICpJbnNlcnQgQ2h1bmsqIGJ1dHRvbiBvbiB0aGUgdG9vbGJhciBvciBieSBwcmVzc2luZyAqQ21kK09wdGlvbitJKi4KCldoZW4geW91IHNhdmUgdGhlIG5vdGVib29rLCBhbiBIVE1MIGZpbGUgY29udGFpbmluZyB0aGUgY29kZSBhbmQgb3V0cHV0IHdpbGwgYmUgc2F2ZWQgYWxvbmdzaWRlIGl0IChjbGljayB0aGUgKlByZXZpZXcqIGJ1dHRvbiBvciBwcmVzcyAqQ21kK1NoaWZ0K0sqIHRvIHByZXZpZXcgdGhlIEhUTUwgZmlsZSkuIAoKVGhlIHByZXZpZXcgc2hvd3MgeW91IGEgcmVuZGVyZWQgSFRNTCBjb3B5IG9mIHRoZSBjb250ZW50cyBvZiB0aGUgZWRpdG9yLiBDb25zZXF1ZW50bHksIHVubGlrZSAqS25pdCosICpQcmV2aWV3KiBkb2VzIG5vdCBydW4gYW55IFIgY29kZSBjaHVua3MuIEluc3RlYWQsIHRoZSBvdXRwdXQgb2YgdGhlIGNodW5rIHdoZW4gaXQgd2FzIGxhc3QgcnVuIGluIHRoZSBlZGl0b3IgaXMgZGlzcGxheWVkLgoK</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiVmlzdWFsaXppbmcgSXNvcXVhbnQgb3V0cHV0IgpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sKLS0tCgpUaGlzIGlzIGFuIFtSIE1hcmtkb3duXShodHRwOi8vcm1hcmtkb3duLnJzdHVkaW8uY29tKSBOb3RlYm9vay4gV2hlbiB5b3UgZXhlY3V0ZSBjb2RlIHdpdGhpbiB0aGUgbm90ZWJvb2ssIHRoZSByZXN1bHRzIGFwcGVhciBiZW5lYXRoIHRoZSBjb2RlLiAKClRyeSBleGVjdXRpbmcgdGhpcyBjaHVuayBieSBjbGlja2luZyB0aGUgKlJ1biogYnV0dG9uIHdpdGhpbiB0aGUgY2h1bmsgb3IgYnkgcGxhY2luZyB5b3VyIGN1cnNvciBpbnNpZGUgaXQgYW5kIHByZXNzaW5nICpDbWQrU2hpZnQrRW50ZXIqLiAKCmBgYHtyfQpsaWJyYXJ5KCdyaGRmNScpCmxpYnJhcnkoJ3J0cmFja2xheWVyJykKCmBgYAoKYGBge3J9CmxpYnJhcnkoJ3JldGljdWxhdGUnKQoKbW9kIDwtIHJldGljdWxhdGU6OnNvdXJjZV9weXRob24oIn4vRG9jdW1lbnRzL2dpdF9odWIvaXNvcXVhbnQvSXNvUXVhbnRfcGlwZWxpbmUvdXRpbGl0aWVzL2lzb3F1YW50Vmlld2VyLnB5IikKb2JqIDwtIGltcG9ydCgibXlfbW9kdWxlIikkTXlDbGFzcygiaGVsbG8iKQoKYGBgCgoKYGBge3J9CnJlYWRzID0gYygnYXJyb3doZWFkX2ZyYWN0aW9uJyA9IDAuNSwndGl0bGUnPSdyZWFkcycpCnJlZiA9ICBjKCdhcnJvd2hlYWRfZnJhY3Rpb24nID0gMC4xKQp0cmFja3NfcGFyYW1zPSBjKCdyZWFkcycgPSByZWFkcywncmVmJz1yZWYpCmBgYApBZGQgYSBuZXcgY2h1bmsgYnkgY2xpY2tpbmcgdGhlICpJbnNlcnQgQ2h1bmsqIGJ1dHRvbiBvbiB0aGUgdG9vbGJhciBvciBieSBwcmVzc2luZyAqQ21kK09wdGlvbitJKi4KCldoZW4geW91IHNhdmUgdGhlIG5vdGVib29rLCBhbiBIVE1MIGZpbGUgY29udGFpbmluZyB0aGUgY29kZSBhbmQgb3V0cHV0IHdpbGwgYmUgc2F2ZWQgYWxvbmdzaWRlIGl0IChjbGljayB0aGUgKlByZXZpZXcqIGJ1dHRvbiBvciBwcmVzcyAqQ21kK1NoaWZ0K0sqIHRvIHByZXZpZXcgdGhlIEhUTUwgZmlsZSkuIAoKVGhlIHByZXZpZXcgc2hvd3MgeW91IGEgcmVuZGVyZWQgSFRNTCBjb3B5IG9mIHRoZSBjb250ZW50cyBvZiB0aGUgZWRpdG9yLiBDb25zZXF1ZW50bHksIHVubGlrZSAqS25pdCosICpQcmV2aWV3KiBkb2VzIG5vdCBydW4gYW55IFIgY29kZSBjaHVua3MuIEluc3RlYWQsIHRoZSBvdXRwdXQgb2YgdGhlIGNodW5rIHdoZW4gaXQgd2FzIGxhc3QgcnVuIGluIHRoZSBlZGl0b3IgaXMgZGlzcGxheWVkLgoK</div>
 
 
 
