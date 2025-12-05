@@ -180,6 +180,22 @@ setGeneric(
 )
 
 
+setMethod(
+  "plot_pie_assignment",
+  signature(object = "isoquantViewer"),
+  function(object,
+          feature_to_plot="ANY",
+          figsize = c(5,4),
+          savefig = TRUE,
+          save_format = 'png') {
+            p_plot_func$plot_pie_assignment(obj=object@python_viewer,
+            feature_to_plot = feature_to_plot,
+            figsize = figsize,
+            savefig = savefig,
+            save_format = save_format)
+            }
+  )
+
 # setMethod(
 #   "plot_pie_assignment",
 #   signature(object = "isoquantViewer"),
@@ -190,137 +206,100 @@ setGeneric(
 #           save_format = 'png', 
 #           return_data = FALSE
 #           ) {
-#             p_plot_func$plot_pie_assignment(obj=object@python_viewer,
-#             feature_to_plot = feature_to_plot,
-#             figsize = figsize,
-#             savefig = savefig,
-#             save_format = save_format,
-#             return_data = return_data)
-#             }
+          
+#           read_assign_fname <- glue("{object@output_directory}{object@prefix}/{object@prefix}.read_assignments.tsv.gz")
+#           scan <-pl$scan_csv(
+#           path.expand(read_assign_fname),
+#           skip_rows=2,
+#           separator="\t",
+#           has_header=TRUE,
+#           infer_schema_length=0)
+
+#         if (feature_to_plot == 'assignment_type'){
+#             scan <- scan$with_columns(
+#             pl$col(feature_to_plot)$
+#             alias('feature'))
+#         }
+#         else {
+          
+#           pattern <- sprintf("(?:^|;)%s=([^;]*)", feature_to_plot)
+#           scan <- scan$with_columns(
+#             pl$col("additional_info")$
+#             str$extract(pattern, 1L)$
+#             alias('feature'))
+#         }
+
+#           df<-scan$select(
+#             pl$col('feature')$
+#             value_counts())$
+#             unnest('feature')$
+#             collect(engine = "streaming")
+
+#           df<- as.data.frame(df) %>%
+#           mutate(
+#             frac = count / sum(count),
+#             label = percent(frac, accuracy = 0.1),
+#             feature_label = glue("{feature} (n={count})"),
+#             ymax = cumsum(frac),
+#             ymin = c(0, head(ymax, n = -1)),
+#             mid = (ymin + ymax) / 2
+#           )
+
+#           total = sum(df$count)
+
+#           p <- ggplot(df, aes(ymax = ymax, ymin = ymin, xmax = 1, xmin = 0,
+#                       fill = feature_label)) +
+#           geom_rect() +
+#           geom_text(
+#             aes(x = 0.5, y = mid, label = label),
+#             size = 4
+#           ) +
+#           coord_polar(theta = "y") +
+#           theme_void() +
+#           ggtitle(paste0("Assignment\n total no. reads: ", total)) +
+#           theme(
+#             plot.title = element_text(hjust = 0.5),
+#             legend.position = "right",
+#             legend.title = element_blank()
+#           )
+          
+#         if (savefig) {
+#         plot_output <- "./plot_output"
+#         if (!dir.exists(plot_output)) dir.create(plot_output, recursive = TRUE)
+        
+#         ofname <- file.path(plot_output,
+#                             paste0("Pie_", feature_to_plot, ".", save_format))
+#         ggsave(ofname, p, width = figsize[1], height = figsize[2])
+
+#       invisible(p)
+#     }
 #   )
 
+setGeneric(
+  "plot_count_bar",
+  function(object,...) {
+    standardGeneric("plot_count_bar")
+  }
+)
+
 setMethod(
-  "plot_pie_assignment",
+  "plot_count_bar",
   signature(object = "isoquantViewer"),
   function(object,
-          feature_to_plot="ANY",
-          figsize = c(5,4),
+          layer="count",
+          sample_id = NULL,
+          gene_list = NULL,
+          isoform_list = NULL,
+          use_transcript_model = FALSE, 
           savefig = TRUE,
-          save_format = 'png', 
-          return_data = FALSE
-          ) {
-          
-          read_assign_fname <- glue("{object@output_directory}{object@prefix}/{object@prefix}.read_assignments.tsv.gz")
-          scan <-pl$scan_csv(
-          path.expand(read_assign_fname),
-          skip_rows=2,
-          separator="\t",
-          has_header=TRUE,
-          infer_schema_length=0)
-
-        if (feature_to_plot == 'assignment_type'){
-            scan <- scan$with_columns(
-            pl$col(feature_to_plot)$
-            alias('feature'))
-        }
-        else {
-          
-          pattern <- sprintf("(?:^|;)%s=([^;]*)", feature_to_plot)
-          scan <- scan$with_columns(
-            pl$col("additional_info")$
-            str$extract(pattern, 1L)$
-            alias('feature'))
-        }
-
-          df<-scan$select(
-            pl$col('feature')$
-            value_counts())$
-            unnest('feature')$
-            collect(engine = "streaming")
-
-          df<- as.data.frame(df) %>%
-          mutate(
-            frac = count / sum(count),
-            label = percent(frac, accuracy = 0.1),
-            feature_label = glue("{feature} (n={count})"),
-            ymax = cumsum(frac),
-            ymin = c(0, head(ymax, n = -1)),
-            mid = (ymin + ymax) / 2
-          )
-
-          total = sum(df$count)
-
-          p <- ggplot(df, aes(ymax = ymax, ymin = ymin, xmax = 1, xmin = 0,
-                      fill = feature_label)) +
-          geom_rect() +
-          geom_text(
-            aes(x = 0.5, y = mid, label = label),
-            size = 4
-          ) +
-          coord_polar(theta = "y") +
-          theme_void() +
-          ggtitle(paste0("Assignment\n total no. reads: ", total)) +
-          theme(
-            plot.title = element_text(hjust = 0.5),
-            legend.position = "right",
-            legend.title = element_blank()
-          )
-        print (p)
-
-        if (savefig) {
-        plot_output <- "./plot_output"
-        if (!dir.exists(plot_output)) dir.create(plot_output, recursive = TRUE)
-        
-        ofname <- file.path(plot_output,
-                            paste0("Pie_", feature_to_plot, ".", save_format))
-        ggsave(ofname, p, width = figsize[1], height = figsize[2])
-      }
-      
-      invisible(p)
-    }
-
-            
+          save_format= 'png') {
+          p_plot_func$plot_count_bar(obj=object@python_viewer,
+          layer = layer,
+          sample_id = sample_id,
+          gene_list = gene_list,
+          isoform_list = isoform_list,
+          use_transcript_model = use_transcript_model,
+          savefig = savefig,
+          save_format = save_format)
+            }
   )
-
-
-# setMethod(
-#   "plotfunc",
-#   signature(object = "isoquantViewer"),
-#   function(
-#           object, 
-#           plot_type,
-#           use_transcript_model,
-#           Ensembl_ID,
-#           gene_names,
-#           figsize,
-#           savefig=,
-
-#           ) {
-
-#     if (plot_type == 'pie_assignment'){
-
-#     }
-
-#     if (plot_type == 'count_bar'){
-
-#     }
-
-#      if (plot_type == 'transcript_map'){
-
-#       p_plot_func$plot_transcript_map(  obj=,
-#             use_transcript_model=,
-#             Ensembl_ID=,
-#             gene_names=,
-#             figsize=,
-#             savefig=,
-#             save_format=)
-
-#     }
-
-#     if (plot_type == 'genomic_region'){
-
-#     }
-
-   
-#   }
-# )

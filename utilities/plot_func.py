@@ -33,7 +33,6 @@ def plot_pie_assignment(
     
 
     if hasattr(obj, "reads_assignment"):
-        obj.get_assignment_df()
         df = obj.reads_assignment
         count = df[feature_to_plot].value_counts()
         
@@ -61,9 +60,11 @@ def plot_pie_assignment(
         comment_prefix="#",      
         infer_schema_length=0,
     )
-        scan = scan.with_columns(
-            pl.col("additional_info").str.extract(rf"(?:^|;){feature_to_plot}=([^;]*)", 1).alias(f"{feature_to_plot}")
-        )
+        
+        if feature_to_plot != 'assignment_type':    
+            scan = scan.with_columns(
+                pl.col("additional_info").str.extract(rf"(?:^|;){feature_to_plot}=([^;]*)", 1).alias(f"{feature_to_plot}")
+            )
 
         count = scan.select(pl.col(f"{feature_to_plot}").value_counts()).unnest(f"{feature_to_plot}").collect(engine = "streaming")
     
@@ -93,6 +94,7 @@ def plot_pie_assignment(
         labels=None,
         autopct="%1.1f%%",
         pctdistance=0.8,
+        textprops={'fontsize': 8}
     )
 
     # Add legend with full info
@@ -100,10 +102,11 @@ def plot_pie_assignment(
         wedges,
         legend_labels,
         loc="center left",
-        bbox_to_anchor=(1, 0.5),frameon=False
+        bbox_to_anchor=(1, 0.5),frameon=False,
+        fontsize=8
     )
 
-    ax.set_title(f"Assignment \n total no. reads:{total}",)
+    ax.set_title(f"Assignment \n total no. reads:{total}",fontsize=10)
 
     if savefig:
         plot_output = './plot_output'
@@ -115,7 +118,7 @@ def plot_pie_assignment(
 
 
 def plot_count_bar(obj,
-            layer:str,
+            layer:str='count',
             sample_id:List[str]=None,
             gene_list:List[str]=None,
             isoform_list:List[str]=None,
@@ -141,6 +144,7 @@ def plot_count_bar(obj,
     """
 
 # --- loading gene dict
+    print(gene_list,sample_id)
     if use_transcript_model:
         # if not hasattr(obj, "gene_dict_model"):
         #     obj.parse_input_gtf(use_ref=False)
