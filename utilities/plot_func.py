@@ -231,14 +231,14 @@ def plot_count_bar(obj,
             mod = 'reference_isoform'
         
         try:
-            b00l = np.isin(isoform_list,obj.mdata[mod].var_names)
+            b00l_in = np.isin(isoform_list,obj.mdata[mod].var_names)
         except KeyError:
-            b00l = np.isin(isoform_list,obj.mdata[mod].var['name'])
+            b00l_in = np.isin(isoform_list,obj.mdata[mod].var['name'])
 
-        if np.sum(b00l) != len(isoform_list):
-            logging.info(f'{isoform_list[np.invert(b00l)]} not found in .var')
+        if np.sum(b00l_in) != len(isoform_list):
+            logging.info(f'{isoform_list[np.invert(b00l_in)]} not found in {mod} .var')
             
-        X = obj.mdata[mod][sample_id,isoform_list[b00l]].to_df(layer)
+        X = obj.mdata[mod][sample_id,isoform_list[b00l_in]].to_df(layer)
             
         X_sorted = X.T.reindex(X.T.sum().sort_values(ascending=False).index, axis=1)
 
@@ -267,7 +267,7 @@ def plot_count_bar(obj,
             plot_output = './plot_output'
             if os.path.exists(plot_output) == False:
                 os.makedirs(plot_output,exist_ok=True)
-            isoform_list_str = '_'.join(isoform_list)
+            isoform_list_str = '_'.join(isoform_list[b00l_in])
             ofname = os.path.join(plot_output,f'Bar_isoforms_{isoform_list_str}_TranscriptModel_{use_transcript_model}.{save_format}')
             plt.show()
             plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
