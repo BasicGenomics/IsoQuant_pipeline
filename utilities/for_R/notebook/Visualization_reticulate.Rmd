@@ -14,7 +14,7 @@ viewer<-isoquantViewer(output_directory = "~/Documents/data/runs/PR211/results/i
     prefix           = "PR211",
     reference_gtf = '~/Documents/ref/geneannotations.gff3'
       )
-plot_count_bar(viewer,layer='count',gene_list=list('TSPAN6'))
+plot_count_bar(viewer,layer='count',gene_list=list('ENSG00000000457','ENSG00000000460'))
 
 
 

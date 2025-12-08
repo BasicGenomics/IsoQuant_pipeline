@@ -144,22 +144,10 @@ def plot_count_bar(obj,
     """
 
 # --- loading gene dict
-    print(gene_list,sample_id)
-    if use_transcript_model:
-        # if not hasattr(obj, "gene_dict_model"):
-        #     obj.parse_input_gtf(use_ref=False)
-        # gene_dict = obj.gene_dict_model
-
-        gene_var = obj.mdata['gene'].var
-    else:  
-        # if not hasattr(obj, "gene_dict_ref"):
-        #     obj.parse_input_gtf(use_ref=True)
-        # gene_dict = obj.gene_dict_ref
-
-        gene_var = obj.mdata['reference_gene'].var
-        
+    
     def is_nonempty(x):
         return x is not None and len(x) > 0
+
 
     # Validate inputs: require at least one non-empty
     if not (is_nonempty(gene_list) or is_nonempty(isoform_list)):
@@ -171,14 +159,28 @@ def plot_count_bar(obj,
 
     if sample_id is None:
         sample_id = list(obj.mdata.obs_names)
-
+    
     if is_nonempty(gene_list):
 
+        if use_transcript_model:
+            gene_var = obj.mdata['gene'].var
+            name_ = 'gene'
+        else:  
+            gene_var = obj.mdata['reference_gene'].var
+            name_ = 'reference_gene'
+        
         for g in gene_list:
-
             # isoforms = np.array(list(gene_dict[g]['transcripts'].keys()))
 
-            isoforms = np.array(gene_var.var[g,:]['transcripts'].split(','))
+            try:
+                isoforms = np.array(gene_var.loc[g,:]['transcripts'].split(','))
+            except KeyError:
+                try:
+                    b00l = gene_var['name']==g
+                    isoforms = np.array(gene_var.loc[b00l,:]['transcripts'].split(','))
+                except KeyError:
+                    raise KeyError (f'{g} is not found in {name_} .var')
+
 
             if use_transcript_model:
                 X = obj.mdata['isoform'][sample_id,isoforms].to_df(layer)
@@ -222,12 +224,22 @@ def plot_count_bar(obj,
                 plt.close()
             
     if is_nonempty(isoform_list):
-
-        if use_transcript_model:
-            X = obj.mdata['isoform'][sample_id,isoform_list].to_df(layer)
-        else: 
-            X = obj.mdata['reference_isoform'][sample_id,isoform_list].to_df(layer)
         
+        if use_transcript_model:
+            mod = 'isoform'
+        else: 
+            mod = 'reference_isoform'
+        
+        try:
+            b00l = np.isin(isoform_list,obj.mdata[mod].var_names)
+        except KeyError:
+            b00l = np.isin(isoform_list,obj.mdata[mod].var['name'])
+
+        if np.sum(b00l) != len(isoform_list):
+            logging.info(f'{isoform_list[np.invert(b00l)]} not found in .var')
+            
+        X = obj.mdata[mod][sample_id,isoform_list[b00l]].to_df(layer)
+            
         X_sorted = X.T.reindex(X.T.sum().sort_values(ascending=False).index, axis=1)
 
         xticks = X_sorted.index
