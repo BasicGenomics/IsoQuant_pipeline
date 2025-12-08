@@ -38,6 +38,7 @@ class isoquantViewer:
                  prefix:str,
                  referene_gtf: Optional[Path] = None,
                  gene_db: Optional[Path] = None,
+                 gene_db_model: Optional[Path] = None,
                  mudata_path: Optional[Path] = None):
 
         """Class to handle IsoQuant output files and data parsing.
@@ -51,6 +52,8 @@ class isoquantViewer:
             Path to the reference GTF file used by IsoQuant. If not provided, it will be loaded from the .params file used during IsoQuant run.
         gene_db: Optional[Path]
             Path to the gene database file used by IsoQuant. If not provided, it will be loaded from the .params file used during IsoQuant run.
+        gene_db_model: Optional[Path]
+            Path to store the gene database file based on IsoQuant's transcript model. If not provided, it will be stored in the output_directory.
         mudata_path: Optional[Path]
             Path to the MuData file containing counts and metadata. If not provided, it will be inferred from the output directory and prefix.
         """
@@ -85,8 +88,11 @@ class isoquantViewer:
         self.transcript_model = f'{self.output_directory}/{self.prefix}/{self.prefix}.transcript_models.gtf'
         self.transcript_model = Path(self.transcript_model).expanduser()
 
-        self.genedb_filename_model = f'{self.output_directory}/{self.prefix}/{self.prefix}.transcript_models.db'
-        self.genedb_filename_model = Path(self.genedb_filename_model).expanduser()
+        if gene_db_model is not None:
+            self.genedb_filename_model = f'{Path(gene_db_model)}/{self.prefix}.transcript_models.db'
+        else: 
+            self.genedb_filename_model = f'{self.output_directory}/{self.prefix}/{self.prefix}.transcript_models.db'
+            self.genedb_filename_model = Path(self.genedb_filename_model).expanduser()
 
         self._load_params_file()
 

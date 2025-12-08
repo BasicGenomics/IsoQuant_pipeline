@@ -172,15 +172,15 @@ def plot_count_bar(obj,
         for g in gene_list:
             # isoforms = np.array(list(gene_dict[g]['transcripts'].keys()))
 
-            try:
+            if g in gene_var.index:
                 isoforms = np.array(gene_var.loc[g,:]['transcripts'].split(','))
-            except KeyError:
-                try:
-                    b00l = gene_var['name']==g
-                    isoforms = np.array(gene_var.loc[b00l,:]['transcripts'].split(','))
-                except KeyError:
-                    raise KeyError (f'{g} is not found in {name_} .var')
-
+            else:
+                b00l = gene_var['name']==g
+                if np.sum(b00l)==0:
+                    raise KeyError(f'{g} is not found in {name_} .var')
+                else:
+                    isoforms = np.array(gene_var.loc[b00l,:].iloc[0,:]['transcripts'].split(','))
+          
 
             if use_transcript_model:
                 X = obj.mdata['isoform'][sample_id,isoforms].to_df(layer)
@@ -230,19 +230,40 @@ def plot_count_bar(obj,
         else: 
             mod = 'reference_isoform'
         
-        try:
-            b00l_in = np.isin(isoform_list,obj.mdata[mod].var_names)
-        except KeyError:
-            b00l_in = np.isin(isoform_list,obj.mdata[mod].var['name'])
+        isoform_list = np.array(isoform_list)
+        var_names = np.asarray(obj.mdata[mod].var_names)
+        name_col = np.asarray(obj.mdata[mod].var['name'])
+        mask_in_var_names = np.isin(isoform_list, var_names)
 
-        if np.sum(b00l_in) != len(isoform_list):
-            logging.info(f'{isoform_list[np.invert(b00l_in)]} not found in {mod} .var')
-            
-        X = obj.mdata[mod][sample_id,isoform_list[b00l_in]].to_df(layer)
-            
+        if not mask_in_var_names.any():
+            mask_in_name_col = np.isin(isoform_list, name_col)
+
+            if not mask_in_name_col.any():
+                raise ValueError(f"None of {isoform_list} can be found in {mod} .var (neither var_names nor var['name'])")
+
+            matched_by_name = isoform_list[mask_in_name_col]
+
+            b_var = np.isin(name_col, matched_by_name)
+            isoform_var_names = np.asarray(obj.mdata[mod][:, b_var].var_names)
+            index = obj.mdata[mod].var.loc[b_var, 'name'].to_numpy()
+
+            found_mask = mask_in_name_col
+
+        else:
+            isoform_var_names = isoform_list[mask_in_var_names]
+            index = isoform_var_names
+            found_mask = mask_in_var_names
+
+        if np.any(~found_mask):
+            missing = isoform_list[~found_mask]
+            logging.info(f"{missing} not found in {mod} .var")
+
+
+        X = obj.mdata[mod][sample_id, isoform_var_names].to_df(layer)
+                   
         X_sorted = X.T.reindex(X.T.sum().sort_values(ascending=False).index, axis=1)
 
-        xticks = X_sorted.index
+        xticks = index
         ylabel = 'Counts' if layer=='count' else 'Transcripts per million'
             
         #Adjusting the figure width based on numbers of isoforms
@@ -267,7 +288,7 @@ def plot_count_bar(obj,
             plot_output = './plot_output'
             if os.path.exists(plot_output) == False:
                 os.makedirs(plot_output,exist_ok=True)
-            isoform_list_str = '_'.join(isoform_list[b00l_in])
+            isoform_list_str = '_'.join(isoform_list)
             ofname = os.path.join(plot_output,f'Bar_isoforms_{isoform_list_str}_TranscriptModel_{use_transcript_model}.{save_format}')
             plt.show()
             plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
@@ -399,20 +420,6 @@ def _plot_transcript_map_helper(obj:isoquantViewer|str,
             if len(notin)>0:
                 logging.info(f'Skipping {notin}, not found in {dname} .var.')
 
-
-        # genes = [g for g in (Ensembl_ID or []) if g in gene_dict]
-        # if not genes:
-        #     if gene_names is not None:
-        #         raise ValueError(f"None of the provided gene_names were found in ({dname}).")
-        #     raise ValueError(f"None of the provided Ensembl_ID were found in ({dname}).")
-
-        # notin = np.isin(np.array(Ensembl_ID),np.array(genes),invert=True)
-        # notin = np.array(Ensembl_ID)[notin]
-        # if len(notin)>0:
-        #     if gene_names is not None:
-        #         notin = [tmp_dict[i] for i in notin]
-        #     logging.info(f'Skipping {notin}, as they are not in the ({dname}).')
-
         return Ensembl_ID,db
 
 
@@ -439,7 +446,11 @@ def plot_transcript_map(
         
 
         for g in Ensembl_ID_:
-            gene_dict = create_db_genedict_from_geneid(g,db)
+            try:
+                gene_dict = create_db_genedict_from_geneid(g,db)
+            except:
+                raise KeyError(f'{g} not in the databse')
+
             n_tx = len(gene_dict[g]["transcripts"])
             total_height = max(3.0, n_tx * 0.3)
 
@@ -528,7 +539,7 @@ def plot_genomic_region(
     if isinstance(obj,str):
         if os.path.exists(obj):
             mdata = mudata.read_h5ad(obj)   
-    elif isinstance(obj,isoquantViewer) and hasattr(obj, "mdata"):
+    elif hasattr(obj, "mdata"):
         mdata = obj.mdata
     else:
         raise ValueError(f"Cant locate mdata.")
@@ -580,9 +591,7 @@ def plot_genomic_region(
     plot_reads = False
 
     gtf_ref = obj.referene_gtf
-    print('gtf_ref:',gtf_ref)
     gtf_model = obj.transcript_model
-    print('gtf_model:',gtf_model)
     bedfile = f'{obj.output_directory}/{obj.prefix}/{obj.prefix}.corrected_reads.bed.gz'
 
     if 'ref' in plot_tracks: 
@@ -612,7 +621,6 @@ def plot_genomic_region(
     str_ = f'{chrom} {int(start)} {int(end)}'
     region = BedTool(str_, from_string=True)
 
-    print('str: ',str_)
     if plot_ref is True:
         BedTool(gtf_ref).intersect(region).saveas(tmp_gtf_ref)
     if plot_model is True:
