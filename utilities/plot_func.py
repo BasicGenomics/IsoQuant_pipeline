@@ -28,13 +28,6 @@ for h in logging.root.handlers[:]:
     
 logging.basicConfig(level=20, stream=sys.stderr)
 
-
-### palette
-import seaborn as sns
-color10 = sns.color_palette("deep",10,as_cmap=True)
-
-
-
 def plot_pie_assignment(
     obj,
     feature_to_plot: Optional[
@@ -96,18 +89,12 @@ def plot_pie_assignment(
         for l, c in zip(labels, sizes)
     ]
 
-    if return_data:
-        data = pd.DataFrame(data={'labels':labels,
-                                  'sizes':sizes})
-        return data
-
     fig, ax = plt.subplots(figsize=figsize)
 
     # Pie: only percent on wedges, no label text
     wedges, texts, autotexts = ax.pie(
         sizes,
         labels=None,
-        color = color10 if len(sizes) <= 10 else None,
         autopct="%1.1f%%",
         pctdistance=0.8,
         textprops={'fontsize': 8}
@@ -124,7 +111,6 @@ def plot_pie_assignment(
 
     ax.set_title(f"Assignment \n total no. reads:{total}",fontsize=10)
 
-    plt.tight_layout()
     if savefig:
         plot_output = obj.plot_dir
         if os.path.exists(plot_output) == False:
@@ -135,6 +121,11 @@ def plot_pie_assignment(
 
     plt.show()
     plt.close()
+
+    if return_data:
+        data = pd.DataFrame(data={'labels':labels,
+                                  'sizes':sizes})
+        return data
 
 def plot_count_bar(obj,
             layer:str='count',
@@ -232,7 +223,6 @@ def plot_count_bar(obj,
             ax.set_xticklabels(xticks, rotation=40, ha='right')
             ax.set_xlabel('Sample')
 
-            plt.tight_layout()
 
             if savefig:
                 plot_output = obj.plot_dir
@@ -305,7 +295,6 @@ def plot_count_bar(obj,
         ax.set_xticklabels(xticks, rotation=40, ha='right')
         ax.set_xlabel('Sample')
 
-        plt.tight_layout()
 
         if savefig:
             plot_output = obj.plot_dir
@@ -317,7 +306,6 @@ def plot_count_bar(obj,
         plt.close()
 
     if return_data:
-        print('return')
         return X_sorted
 
 
@@ -496,7 +484,6 @@ def plot_transcript_map(
             ax.set_frame_on(False)
             ax.set_xlim(gene_dict[g]["start"], gene_dict[g]["end"])
 
-            plt.tight_layout()
 
             if savefig:
                 plot_output = obj.plot_dir
@@ -783,7 +770,6 @@ def plot_genomic_region(
         ax.set_yticks([])
         ax.set_frame_on(False)
 
-    plt.tight_layout()
     if savefig:
         plot_output = obj.plot_dir
         if os.path.exists(plot_output) == False:
