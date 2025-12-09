@@ -82,15 +82,15 @@ class isoquantViewer:
         self.mdata= mudata.read_h5mu(mudata_path)
 
         if plot_output is None:
-            self.plot_dir = './plot_output'
+            self.plot_output = './plot_output'
         else:
-            self.plot_dir = plot_output
+            self.plot_output = plot_output
         
-        self.plot_dir = Path(self.plot_dir).expanduser()
+        self.plot_output = Path(self.plot_output).expanduser()
 
-        if os.path.exists(self.plot_dir) == False:
-            os.makedirs(self.plot_dir,exist_ok=True)
-            logging.info(f'Plots are saved in {self.plot_dir}.')
+        if os.path.exists(self.plot_output) == False:
+            os.makedirs(self.plot_output,exist_ok=True)
+            logging.info(f'Plots are saved in {self.plot_output}.')
 
 
 

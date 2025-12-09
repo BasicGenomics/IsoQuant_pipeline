@@ -113,22 +113,25 @@ def plot_pie_assignment(
     ax.set_title(f"Assignment \n total no. reads:{total}",fontsize=10)
 
     if savefig:
-        plot_output = obj.plot_dir
+        plot_output = obj.plot_output
         if os.path.exists(plot_output) == False:
             os.makedirs(plot_output,exist_ok=True)
         # ofname = os.path.join(plot_output,f'Pie_{feature_to_plot}.{save_format}')
         ofname = plot_output/f'Pie_{feature_to_plot}.{save_format}'
-        if return_figname:
-                return ofname
         plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
-
-    plt.show()
-    plt.close()
 
     if return_data:
         data = pd.DataFrame(data={'labels':labels,
                                   'sizes':sizes})
         return data
+    
+    if return_figname:
+                plt.close()
+                return ofname
+    
+    else:
+        plt.show()
+        plt.close()
 
 def plot_count_bar(obj,
             layer:str='count',
@@ -230,16 +233,13 @@ def plot_count_bar(obj,
             # fig.tight_layout()
 
             if savefig:
-                plot_output = obj.plot_dir
+                plot_output = obj.plot_output
                 if os.path.exists(plot_output) == False:
                     os.makedirs(plot_output,exist_ok=True)
                 # ofname = os.path.join(plot_output,f'Bar_{g}_TranscriptModel_{use_transcript_model}.{save_format}')
                 ofname = plot_output/f'Bar_{g}_TranscriptModel_{use_transcript_model}.{save_format}'
-                if return_figname:
-                    return ofname
                 plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
-            plt.show()
-            plt.close()
+            
             
     if is_nonempty(isoform_list):
         
@@ -305,18 +305,23 @@ def plot_count_bar(obj,
         # fig.tight_layout()
 
         if savefig:
-            plot_output = obj.plot_dir
+            plot_output = obj.plot_output
             isoform_list_str = '_'.join(isoform_list)
             # ofname = os.path.join(plot_output,f'Bar_isoforms_{isoform_list_str}_TranscriptModel_{use_transcript_model}.{save_format}')
             ofname = plot_output/f'Bar_isoforms_{isoform_list_str}_TranscriptModel_{use_transcript_model}.{save_format}'
-            if return_figname:
-                return ofname
             plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
+        
+    if return_data:
+        return X_sorted
+    
+    if return_figname:
+                plt.close()
+                return ofname
+    
+    else:
         plt.show()
         plt.close()
 
-    if return_data:
-        return X_sorted
 
 
 # --- helper function for plot_transcript_map, plot one gene per ax ---
@@ -497,16 +502,21 @@ def plot_transcript_map(
 
 
             if savefig:
-                plot_output = obj.plot_dir
+                plot_output = obj.plot_output
                 if os.path.exists(plot_output) == False:
                     os.makedirs(plot_output,exist_ok=True)
                 # ofname = os.path.join(plot_output,f'TranscriptMap_{g}_TranscriptModel_{use_transcript_model}.{save_format}')
                 ofname = plot_output/f'TranscriptMap_{g}_TranscriptModel_{use_transcript_model}.{save_format}'
-                if return_figname:
-                    return ofname
                 plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
-            plt.show()
-            plt.close()
+            
+            if return_figname:
+                plt.close()
+                return ofname
+    
+            else:
+                plt.show()
+                plt.close()
+
 
 
 # --- helpfer functions for genomic region plotting ---
@@ -608,6 +618,7 @@ def plot_genomic_region(
 
         chrom, start, end = entry['chromosome'],entry['start'],entry['end']
         region_str = f'{chrom}:{int(start)}-{int(end)}'
+        region_str_saved = f'{chrom}_{int(start)}-{int(end)}'
         start-=padding
         end+=padding
     
@@ -785,16 +796,20 @@ def plot_genomic_region(
         ax.set_frame_on(False)
 
     if savefig:
-        plot_output = obj.plot_dir
+        plot_output = obj.plot_output
         if os.path.exists(plot_output) == False:
             os.makedirs(plot_output,exist_ok=True)
         # ofname = os.path.join(plot_output,f'GenomeTrack_{region_str}.{save_format}')
-        ofname = plot_output/f'GenomeTrack_{region_str}.{save_format}'
-        if return_figname:
-                return ofname
+        ofname = plot_output/f'GenomeTrack_{region_str_saved}.{save_format}'
         plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
-    plt.show()
-    plt.close()
 
     for f in [tmp_gtf_ref,tmp_gtf_model,tmp_bed]:
         Path(f).unlink(missing_ok=True)
+
+    if return_figname:
+                plt.close()
+                return ofname
+    
+    else:
+        plt.show()
+        plt.close()

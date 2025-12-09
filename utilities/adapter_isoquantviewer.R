@@ -1,13 +1,19 @@
 library(logger)
 library(glue)
+library(here)
+
 ## Import python class
+
+this_file <- parent.frame(2)$ofile
+this_dir <- dirname(normalizePath(this_file))
+
 p_isoquantViewer <- import_from_path(
   "isoquantViewer",
-  path = "~/Documents/git_hub/isoquant/IsoQuant_pipeline/utilities/"
+  path = this_dir
 )
 p_plot_func <- import_from_path(
   "plot_func",
-  path = "~/Documents/git_hub/isoquant/IsoQuant_pipeline/utilities/"
+  path = this_dir
 )
 
 
@@ -24,7 +30,7 @@ setClass(
     gene_db          = "characterORNULL",   # optional
     gene_db_model    = 'characterORNULL',   # optional
     mudata_path      = "characterORNULL",   # optional
-    plot_dir         = "characterORNULL",   # optional
+    plot_output      = "characterORNULL",   # optional
     python_viewer    = "ANY"
   ),
   prototype = list(
@@ -34,7 +40,7 @@ setClass(
     gene_db = NULL,
     gene_db_model = NULL,
     mudata_path = NULL,
-    plot_dir = NULL,
+    plot_output = NULL,
     python_viewer = NULL
     )
 )
@@ -45,7 +51,7 @@ isoquantViewer <- function(output_directory,
                   gene_db = NULL,
                   gene_db_model = NULL,
                   mudata_path = NULL,
-                  plot_dir = NULL
+                  plot_output = NULL
                   ) {
 
   new("isoquantViewer",
@@ -55,7 +61,7 @@ isoquantViewer <- function(output_directory,
       gene_db = gene_db,
       gene_db_model = gene_db_model,
       mudata_path = mudata_path,
-      plot_dir = plot_dir
+      plot_output = plot_output
       )
 }
 
@@ -67,7 +73,7 @@ setMethod("show", "isoquantViewer", function(object) {
   cat("  gene_db   :", if (is.null(object@gene_db)) "<NULL>" else object@gene_db, "\n")
   cat("  gene_db_model   :", if (is.null(object@gene_db_model)) "<NULL>" else object@gene_db_model, "\n")
   cat("  mudata_path   :", if (is.null(object@mudata_path)) "<NULL>" else object@mudata_path, "\n")
-  cat("  plot_dir   :", if (is.null(object@plot_dir)) "<NULL>" else object@plot_dir, "\n")
+  cat("  plot_output   :", if (is.null(object@plot_output)) "<NULL>" else object@plot_output, "\n")
 }
 )
 
@@ -90,13 +96,13 @@ setMethod(
         gene_db          = .Object@gene_db,
         gene_db_model    = .Object@gene_db_model,
         mudata_path      = .Object@mudata_path,
-        plot_dir         = .Object@plot_dir
+        plot_output         = .Object@plot_output
       )
     } else {
       .Object@python_viewer <- NULL
     }
 
-    logger::log_info(glue("\n Plots are saved in {.Object@python_viewer$plot_dir}"))
+    logger::log_info(glue("\n Plots are saved in {.Object@python_viewer$plot_output}"))
 
     .Object
   }

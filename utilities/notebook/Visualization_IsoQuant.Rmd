@@ -8,26 +8,13 @@ output:
     df_print: kable
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
-```{r setup,include=FALSE}
-
-knitr::opts_chunk$set(
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 95),
-  message = TRUE,
-  warning = TRUE,
-  time_it = TRUE,
-  error = TRUE
-)
-
-```
-
 
 ```{r}
 library(reticulate)
 library(glue)
 
-conda_path <- "/Users/kawai/miniconda3/envs/R_45_python310/" # Replace the path to your conda envirnment path
-viewer_code_path <- "/Users/kawai/Documents/git_hub/isoquant/IsoQuant_pipeline/utilities/for_R/adapter_isoquantviewer.R" # Replace the path to your location of the R code
+conda_path <- "../miniconda3/envs/R_45_python310/" # Replace the path to your conda envirnment path
+viewer_code_path <- "../IsoQuant_pipeline/utilities/adapter_isoquantviewer.R" # Replace the path to your location of the R code
 
 use_condaenv(conda_path, required = TRUE) 
 use_python(glue("{conda_path}/bin/python"), required = TRUE)
@@ -37,14 +24,16 @@ py_config() # for checking if the session is configured with the environment you
 
 
 ```{r}
-output_directory <- "~/Documents/data/runs/PR211/results/isoquant_output/" # path to IsoQuantOutput directory
-prefix <- "PR211" # Name of the project
+output_directory <- "../prefix/results/isoquant_output/" # path to IsoQuantOutput directory
+prefix <- "prefix" # Name of the project
 reference_gtf <- '~/Documents/ref/geneannotations.gff3' # path to reference gene annotation 
 viewer<-isoquantViewer(output_directory = output_directory,        
     prefix = prefix, 
     reference_gtf = reference_gtf,
-    plot_dir = '~/Desktop/'
+    plot_output = '~/Desktop/'
       )
+
+# * Plots are automatically saved in the folder "./plot_output" if plot_output is not defined
 ```
 
 #### Visualizing read assignment and counts
