@@ -48,7 +48,7 @@ class isoquantViewer:
                  gene_db: Optional[Path] = None,
                  gene_db_model: Optional[Path] = None,
                  mudata_path: Optional[Path] = None,
-                 plot_dir: Optional[Path] = None):
+                 plot_output: Optional[Path] = None):
 
         """Class to handle IsoQuant output files and data parsing.
         Parameters:
@@ -65,6 +65,8 @@ class isoquantViewer:
             Path to store the gene database file based on IsoQuant's transcript model. If not provided, it will be stored in the output_directory.
         mudata_path: Optional[Path]
             Path to the MuData file containing counts and metadata. If not provided, it will be inferred from the output directory and prefix.
+        plot_output: Optional[Path]
+            Path to plots folder. If not provided, ./plot_output folder will be created
         """
         
         self.output_directory = Path(output_directory).expanduser()
@@ -79,10 +81,10 @@ class isoquantViewer:
             mudata_path = mudata_path.expanduser()
         self.mdata= mudata.read_h5mu(mudata_path)
 
-        if plot_dir is None:
-            self.plot_dir = self.output_directory/'plot_dir'
+        if plot_output is None:
+            self.plot_dir = './plot_output'
         else:
-            self.plot_dir = plot_dir
+            self.plot_dir = plot_output
         
         self.plot_dir = Path(self.plot_dir).expanduser()
 
