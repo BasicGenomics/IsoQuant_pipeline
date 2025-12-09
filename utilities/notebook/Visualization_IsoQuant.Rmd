@@ -1,16 +1,28 @@
 
 
 ---
-title: 'Visualization IsoQuant'
-author: ''
-date: '`r Sys.Date()`'
+title: 'Visualization IsoQuant output'
 output:
-  pagedown::html_paged:
-    self_contained: false
-    toc: false
+  html_document:
+    theme: united
+    df_print: kable
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
+```{r setup,include=FALSE}
 
-```{r setup}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = TRUE,
+  warning = TRUE,
+  time_it = TRUE,
+  error = TRUE
+)
+
+```
+
+
+```{r}
 library(reticulate)
 library(glue)
 
@@ -19,19 +31,12 @@ viewer_code_path <- "/Users/kawai/Documents/git_hub/isoquant/IsoQuant_pipeline/u
 
 use_condaenv(conda_path, required = TRUE) 
 use_python(glue("{conda_path}/bin/python"), required = TRUE)
+source(viewer_code_path) 
 py_config() # for checking if the session is configured with the environment you specified
-
-source(viewer_code_path)
-
-knitr::opts_chunk$set(
-  echo = FALSE,
-  message = FALSE,
-  warning=FALSE
-)
 ```
 
 
-```{r,warning=FALSE}
+```{r}
 output_directory <- "~/Documents/data/runs/PR211/results/isoquant_output/" # path to IsoQuantOutput directory
 prefix <- "PR211" # Name of the project
 reference_gtf <- '~/Documents/ref/geneannotations.gff3' # path to reference gene annotation 
@@ -42,30 +47,30 @@ viewer<-isoquantViewer(output_directory = output_directory,
       )
 ```
 
-* Plots are automatically saved in the folder "plot_output"
 #### Visualizing read assignment and counts
 
 Function: 
 
-- plot_pie_assignment
+* plot_pie_assignment
 
   Plot pie chart of read assignment (.read_assignments.tsv.gz; stored as .reads_assignment) from IsoQuant. "feature_to_plot" are: "assignment_type", "gene_assignment", "Classification"
 
 
-- plot_count_bar
+* plot_count_bar
 
   A bar plot of counts for either specified genes or isoforms. If providing gene_list, plots stacked barplot of isoforms per gene. If providing isoform_list, plots a barplot of specified isoforms.
 
-  Can either be from the raw count or TPM matrix using "layer", and based on the transcript model or the reference annotation (use_transcript_model=True or False, default is False). Default is plotting all availble samples, but can be limited to specific sample using "sample_id" = [sample1, sample2, and etc.]
-  
+  Can either be from the raw count or TPM matrix using "layer", and based on the transcript model or the reference annotation (use_transcript_model=True or False, default is False). Default is plotting all available samples, but can be limited to specific sample using "sample_id" = [sample1, sample2, and etc.]
+
 
 ```{r}
-plot_count_bar(viewer,layer='count',
+fname<-plot_count_bar(viewer,layer='count',
           isoform_list = list('ENST00000008440','transcript92.Y.nnic'),
           use_transcript_model=TRUE)
+knitr::include_graphics(as.character(fname))
 
-plot_pie_assignment(viewer,feature_to_plot = 'assignment_type')
-
+fname<-plot_pie_assignment(viewer,feature_to_plot = 'assignment_type')
+knitr::include_graphics(as.character(fname))
 ```
 
 #### Visualizing transcripts within a genomic region 
@@ -76,13 +81,14 @@ plot_pie_assignment(viewer,feature_to_plot = 'assignment_type')
 
 ```{r}
 
-plot_transcript_map(viewer,
+fname<-plot_transcript_map(viewer,
                     gene_names=list("TSPAN6"),
                     use_transcript_model=TRUE)
+knitr::include_graphics(as.character(fname))
 
 ```
 
-- plot_genomic_region
+* plot_genomic_region
 
   Visualize a genomic region defined by setting either:
   
@@ -102,6 +108,8 @@ plot_transcript_map(viewer,
 
 
 ```{r,out.height="100%"}
-plot_genomic_region(viewer,
+fname<-plot_genomic_region(viewer,
                     gene_name = 'TSPAN6')
+knitr::include_graphics(as.character(fname))
+
 ```

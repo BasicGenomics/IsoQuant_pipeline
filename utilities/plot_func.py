@@ -36,7 +36,8 @@ def plot_pie_assignment(
     figsize:tuple[float,float]=(5,4),
     savefig:bool=True,
     save_format:str='png',
-    return_data:bool=False
+    return_data:bool=False,
+    return_figname:bool=False
 ):
     
 
@@ -117,6 +118,8 @@ def plot_pie_assignment(
             os.makedirs(plot_output,exist_ok=True)
         # ofname = os.path.join(plot_output,f'Pie_{feature_to_plot}.{save_format}')
         ofname = plot_output/f'Pie_{feature_to_plot}.{save_format}'
+        if return_figname:
+                return ofname
         plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
 
     plt.show()
@@ -135,7 +138,8 @@ def plot_count_bar(obj,
             use_transcript_model:bool=False,
             savefig:bool=True,
             save_format:str='png',
-            return_data=False
+            return_data=False,
+            return_figname=False,
 ):
 
     """
@@ -223,6 +227,7 @@ def plot_count_bar(obj,
             ax.set_xticklabels(xticks, rotation=40, ha='right')
             ax.set_xlabel('Sample')
 
+            # fig.tight_layout()
 
             if savefig:
                 plot_output = obj.plot_dir
@@ -230,6 +235,8 @@ def plot_count_bar(obj,
                     os.makedirs(plot_output,exist_ok=True)
                 # ofname = os.path.join(plot_output,f'Bar_{g}_TranscriptModel_{use_transcript_model}.{save_format}')
                 ofname = plot_output/f'Bar_{g}_TranscriptModel_{use_transcript_model}.{save_format}'
+                if return_figname:
+                    return ofname
                 plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
             plt.show()
             plt.close()
@@ -295,12 +302,15 @@ def plot_count_bar(obj,
         ax.set_xticklabels(xticks, rotation=40, ha='right')
         ax.set_xlabel('Sample')
 
+        # fig.tight_layout()
 
         if savefig:
             plot_output = obj.plot_dir
             isoform_list_str = '_'.join(isoform_list)
             # ofname = os.path.join(plot_output,f'Bar_isoforms_{isoform_list_str}_TranscriptModel_{use_transcript_model}.{save_format}')
             ofname = plot_output/f'Bar_isoforms_{isoform_list_str}_TranscriptModel_{use_transcript_model}.{save_format}'
+            if return_figname:
+                return ofname
             plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
         plt.show()
         plt.close()
@@ -444,7 +454,8 @@ def plot_transcript_map(
             gene_names:List[str]=None,
             figsize:tuple[float,float]=(8,3.5),
             savefig:bool=True,
-            save_format:str='png'):
+            save_format:str='png',
+            return_figname:bool=False):
         """
         Plot transcript structures for specified genes.
         Parameters:
@@ -491,6 +502,8 @@ def plot_transcript_map(
                     os.makedirs(plot_output,exist_ok=True)
                 # ofname = os.path.join(plot_output,f'TranscriptMap_{g}_TranscriptModel_{use_transcript_model}.{save_format}')
                 ofname = plot_output/f'TranscriptMap_{g}_TranscriptModel_{use_transcript_model}.{save_format}'
+                if return_figname:
+                    return ofname
                 plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
             plt.show()
             plt.close()
@@ -522,7 +535,8 @@ def plot_genomic_region(
         figsize:tuple[float,float]=(10,18),
         label_fontsize: int=5,
         savefig:bool=True,
-        save_format:str='png'
+        save_format:str='png',
+        return_figname:bool=False
     ):
     """
     Plot a genomic region using pyGenomeTracks classes
@@ -776,6 +790,8 @@ def plot_genomic_region(
             os.makedirs(plot_output,exist_ok=True)
         # ofname = os.path.join(plot_output,f'GenomeTrack_{region_str}.{save_format}')
         ofname = plot_output/f'GenomeTrack_{region_str}.{save_format}'
+        if return_figname:
+                return ofname
         plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
     plt.show()
     plt.close()

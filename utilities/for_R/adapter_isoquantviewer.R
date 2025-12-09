@@ -96,7 +96,7 @@ setMethod(
       .Object@python_viewer <- NULL
     }
 
-    logger::log_info(glue("Plots are saved in {.Object@python_viewer$plot_dir}"))
+    logger::log_info(glue("\n Plots are saved in {.Object@python_viewer$plot_dir}"))
 
     .Object
   }
@@ -124,14 +124,16 @@ setMethod(
           gene_names=NULL,
           figsize=c(8,3.5),
           savefig=TRUE,
-          save_format='png') {
+          save_format='png',
+          return_figname = TRUE) {
             p_plot_func$plot_transcript_map(obj=object@python_viewer,
             use_transcript_model=use_transcript_model,
             Ensembl_ID=Ensembl_ID,
             gene_names=gene_names,
             figsize=figsize,
             savefig=savefig,
-            save_format=save_format)
+            save_format=save_format,
+            return_figname = return_figname)
   }
   )
 
@@ -159,7 +161,8 @@ setMethod(
           figsize=c(10,18),
           label_fontsize = 5,
           savefig=TRUE,
-          save_format='png'
+          save_format='png',
+          return_figname = TRUE
           ) {
             p_plot_func$plot_genomic_region(obj=object@python_viewer,
             region = region,
@@ -172,7 +175,8 @@ setMethod(
             figsize = figsize,
             label_fontsize = label_fontsize,
             savefig = savefig,
-            save_format = save_format)
+            save_format = save_format,
+            return_figname=TRUE)
             }
   )
 
@@ -193,12 +197,14 @@ setMethod(
           feature_to_plot="ANY",
           figsize = c(5,4),
           savefig = TRUE,
-          save_format = 'png') {
+          save_format = 'png',
+          return_figname = TRUE) {
             p_plot_func$plot_pie_assignment(obj=object@python_viewer,
             feature_to_plot = feature_to_plot,
             figsize = figsize,
             savefig = savefig,
-            save_format = save_format)
+            save_format = save_format,
+            return_figname= return_figname)
             }
   )
 
@@ -220,7 +226,8 @@ setMethod(
           isoform_list = NULL,
           use_transcript_model = FALSE, 
           savefig = TRUE,
-          save_format= 'png') {
+          save_format= 'png',
+          return_figname = TRUE) {
           p_plot_func$plot_count_bar(obj=object@python_viewer,
           layer = layer,
           sample_id = sample_id,
@@ -228,6 +235,7 @@ setMethod(
           isoform_list = isoform_list,
           use_transcript_model = use_transcript_model,
           savefig = savefig,
-          save_format = save_format)
+          save_format = save_format,
+          return_figname = return_figname)
             }
   )
