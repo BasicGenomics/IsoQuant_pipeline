@@ -19,6 +19,21 @@ from pathlib import Path
 import gffutils
 from gffutils.exceptions import FeatureNotFoundError
 from isoquantViewer import isoquantViewer,create_db_genedict_from_geneid
+import sys 
+
+### reset logging https://github.com/rstudio/reticulate/issues/825
+for h in logging.root.handlers[:]:
+    logging.root.removeHandler(h)
+    h.close()
+    
+logging.basicConfig(level=20, stream=sys.stderr)
+
+
+### palette
+import seaborn as sns
+color10 = sns.color_palette("deep",10,as_cmap=True)
+
+
 
 def plot_pie_assignment(
     obj,
@@ -92,6 +107,7 @@ def plot_pie_assignment(
     wedges, texts, autotexts = ax.pie(
         sizes,
         labels=None,
+        color = color10 if len(sizes) <= 10 else None,
         autopct="%1.1f%%",
         pctdistance=0.8,
         textprops={'fontsize': 8}
@@ -108,14 +124,17 @@ def plot_pie_assignment(
 
     ax.set_title(f"Assignment \n total no. reads:{total}",fontsize=10)
 
+    plt.tight_layout()
     if savefig:
-        plot_output = './plot_output'
+        plot_output = obj.plot_dir
         if os.path.exists(plot_output) == False:
             os.makedirs(plot_output,exist_ok=True)
-        ofname = os.path.join(plot_output,f'Pie_{feature_to_plot}.{save_format}')
+        # ofname = os.path.join(plot_output,f'Pie_{feature_to_plot}.{save_format}')
+        ofname = plot_output/f'Pie_{feature_to_plot}.{save_format}'
         plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
 
-
+    plt.show()
+    plt.close()
 
 def plot_count_bar(obj,
             layer:str='count',
@@ -141,6 +160,7 @@ def plot_count_bar(obj,
     gene_list: list of gene names to plot
     isoform_list: list of isoform IDs to plot
     use_transcript_model: bool, whether to use transcript model from IsoQuant
+    savefig: 
     """
 
 # --- loading gene dict
@@ -190,10 +210,7 @@ def plot_count_bar(obj,
             ylabel = 'Transcripts per million' if layer=='tpm' else 'Counts'
 
             X_sorted = X.reindex(X.sum().sort_values(ascending=False).index, axis=1)
-
-            if return_data:
-                return X_sorted
-            
+    
             xticks = X_sorted.index
 
             #Adjusting the figure width based on numbers of samples
@@ -204,6 +221,7 @@ def plot_count_bar(obj,
             
             fig, ax = plt.subplots(figsize=(width, height))
 
+            # if len
             X_sorted.plot.bar(ax=ax,stacked=True)
             ax.legend(loc='center left', 
             bbox_to_anchor=(1, 0.5),
@@ -214,14 +232,17 @@ def plot_count_bar(obj,
             ax.set_xticklabels(xticks, rotation=40, ha='right')
             ax.set_xlabel('Sample')
 
+            plt.tight_layout()
+
             if savefig:
-                plot_output = './plot_output'
+                plot_output = obj.plot_dir
                 if os.path.exists(plot_output) == False:
                     os.makedirs(plot_output,exist_ok=True)
-                ofname = os.path.join(plot_output,f'Bar_{g}_TranscriptModel_{use_transcript_model}.{save_format}')
+                # ofname = os.path.join(plot_output,f'Bar_{g}_TranscriptModel_{use_transcript_model}.{save_format}')
+                ofname = plot_output/f'Bar_{g}_TranscriptModel_{use_transcript_model}.{save_format}'
                 plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
-                plt.show()
-                plt.close()
+            plt.show()
+            plt.close()
             
     if is_nonempty(isoform_list):
         
@@ -284,15 +305,20 @@ def plot_count_bar(obj,
         ax.set_xticklabels(xticks, rotation=40, ha='right')
         ax.set_xlabel('Sample')
 
+        plt.tight_layout()
+
         if savefig:
-            plot_output = './plot_output'
-            if os.path.exists(plot_output) == False:
-                os.makedirs(plot_output,exist_ok=True)
+            plot_output = obj.plot_dir
             isoform_list_str = '_'.join(isoform_list)
-            ofname = os.path.join(plot_output,f'Bar_isoforms_{isoform_list_str}_TranscriptModel_{use_transcript_model}.{save_format}')
-            plt.show()
+            # ofname = os.path.join(plot_output,f'Bar_isoforms_{isoform_list_str}_TranscriptModel_{use_transcript_model}.{save_format}')
+            ofname = plot_output/f'Bar_isoforms_{isoform_list_str}_TranscriptModel_{use_transcript_model}.{save_format}'
             plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
-            plt.close()
+        plt.show()
+        plt.close()
+
+    if return_data:
+        print('return')
+        return X_sorted
 
 
 # --- helper function for plot_transcript_map, plot one gene per ax ---
@@ -470,15 +496,17 @@ def plot_transcript_map(
             ax.set_frame_on(False)
             ax.set_xlim(gene_dict[g]["start"], gene_dict[g]["end"])
 
+            plt.tight_layout()
 
             if savefig:
-                plot_output = './plot_output'
+                plot_output = obj.plot_dir
                 if os.path.exists(plot_output) == False:
                     os.makedirs(plot_output,exist_ok=True)
-                ofname = os.path.join(plot_output,f'TranscriptMap_{g}_TranscriptModel_{use_transcript_model}.{save_format}')
+                # ofname = os.path.join(plot_output,f'TranscriptMap_{g}_TranscriptModel_{use_transcript_model}.{save_format}')
+                ofname = plot_output/f'TranscriptMap_{g}_TranscriptModel_{use_transcript_model}.{save_format}'
                 plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
-                plt.show()
-                plt.close()
+            plt.show()
+            plt.close()
 
 
 # --- helpfer functions for genomic region plotting ---
@@ -755,14 +783,16 @@ def plot_genomic_region(
         ax.set_yticks([])
         ax.set_frame_on(False)
 
+    plt.tight_layout()
     if savefig:
-        plot_output = './plot_output'
+        plot_output = obj.plot_dir
         if os.path.exists(plot_output) == False:
             os.makedirs(plot_output,exist_ok=True)
-        ofname = os.path.join(plot_output,f'GenomeTrack_{region_str}.{save_format}')
+        # ofname = os.path.join(plot_output,f'GenomeTrack_{region_str}.{save_format}')
+        ofname = plot_output/f'GenomeTrack_{region_str}.{save_format}'
         plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
-        plt.show()
-        plt.close()
+    plt.show()
+    plt.close()
 
     for f in [tmp_gtf_ref,tmp_gtf_model,tmp_bed]:
         Path(f).unlink(missing_ok=True)

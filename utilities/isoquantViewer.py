@@ -17,6 +17,14 @@ from pathlib import Path
 import polars as pl
 import logging
 
+
+### reset logging https://github.com/rstudio/reticulate/issues/825
+for h in logging.root.handlers[:]:
+    logging.root.removeHandler(h)
+    h.close()
+    
+logging.basicConfig(level=20, stream=sys.stderr)
+
 class SafeUnpickler(pickle.Unpickler):
     def find_class(self, module, name):
         if module.startswith("src"):
@@ -39,7 +47,8 @@ class isoquantViewer:
                  referene_gtf: Optional[Path] = None,
                  gene_db: Optional[Path] = None,
                  gene_db_model: Optional[Path] = None,
-                 mudata_path: Optional[Path] = None):
+                 mudata_path: Optional[Path] = None,
+                 plot_dir: Optional[Path] = None):
 
         """Class to handle IsoQuant output files and data parsing.
         Parameters:
@@ -62,8 +71,6 @@ class isoquantViewer:
         self.prefix = prefix
         self.referene_gtf = referene_gtf
         self.gene_db = gene_db
-        self.plot_output = self.output_directory/'plot_output'
-        self.plot_output = Path(self.plot_output).expanduser()
         transcript_model_reads_fname = self.output_directory/f'{prefix}/{prefix}.transcript_model_reads.tsv.gz'
         transcript_model_reads_fname = Path(transcript_model_reads_fname).expanduser()
 
@@ -71,6 +78,18 @@ class isoquantViewer:
             mudata_path = Path(self.output_directory)/f"mudata/{prefix}_counts.h5mu"
             mudata_path = mudata_path.expanduser()
         self.mdata= mudata.read_h5mu(mudata_path)
+
+        if plot_dir is None:
+            self.plot_dir = self.output_directory/'plot_dir'
+        else:
+            self.plot_dir = plot_dir
+        
+        self.plot_dir = Path(self.plot_dir).expanduser()
+
+        if os.path.exists(self.plot_dir) == False:
+            os.makedirs(self.plot_dir,exist_ok=True)
+            logging.info(f'Plots are saved in {self.plot_dir}.')
+
 
 
         with gzip.open(transcript_model_reads_fname, "rt") as f: 
