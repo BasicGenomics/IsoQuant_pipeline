@@ -3,11 +3,12 @@ from typing import List,Optional,Dict,Literal
 from collections import Counter
 import numpy as np
 import matplotlib.ticker as ticker
-
+import pandas as pd
 from pygenometracks.tracks.BigWigTrack import BigWigTrack
 from pygenometracks.tracks.GtfTrack import GtfTrack
 from pygenometracks.tracks.ScaleBarTrack import ScaleBarTrack
 from pygenometracks.tracks.BedTrack import BedTrack
+import mudata
 
 from pybedtools import BedTool
 import math
@@ -15,6 +16,17 @@ import os
 import logging
 from default_tracks import bed_props, gtf_props, ref_props, bam_props
 from pathlib import Path
+import gffutils
+from gffutils.exceptions import FeatureNotFoundError
+from isoquantViewer import isoquantViewer,create_db_genedict_from_geneid
+import sys 
+
+### reset logging https://github.com/rstudio/reticulate/issues/825
+for h in logging.root.handlers[:]:
+    logging.root.removeHandler(h)
+    h.close()
+    
+logging.basicConfig(level=20, stream=sys.stderr)
 
 def plot_pie_assignment(
     obj,
@@ -22,13 +34,52 @@ def plot_pie_assignment(
         Literal["assignment_type", "gene_assignment", "Classification"]
     ],
     figsize:tuple[float,float]=(5,4),
-    savefig:bool=True
+    savefig:bool=True,
+    save_format:str='png',
+    return_data:bool=False,
+    return_figname:bool=False
 ):
+    
 
-    df = obj.reads_assignment
-    count = df[feature_to_plot].value_counts()
+    if hasattr(obj, "reads_assignment"):
+        df = obj.reads_assignment
+        count = df[feature_to_plot].value_counts()
+        
+
+    else:
+        import polars as pl
+        import gzip
+
+        read_assign_fname =  f'{obj.output_directory}/{obj.prefix}/{obj.prefix}.read_assignments.tsv.gz'
+        with gzip.open(read_assign_fname, "rt") as f:
+            comment_lines = []
+            for line in f:
+                if line.startswith("#"):
+                    comment_lines.append(line)
+                else:
+                    break
+    
+        header = comment_lines[-1].lstrip("#").strip().split()
+        n_comment_lines = len(comment_lines)
+        scan = pl.scan_csv(
+        read_assign_fname,
+        separator="\t",
+        has_header=False,
+        new_columns=header,
+        comment_prefix="#",      
+        infer_schema_length=0,
+    )
+        
+        if feature_to_plot != 'assignment_type':    
+            scan = scan.with_columns(
+                pl.col("additional_info").str.extract(rf"(?:^|;){feature_to_plot}=([^;]*)", 1).alias(f"{feature_to_plot}")
+            )
+
+        count = scan.select(pl.col(f"{feature_to_plot}").value_counts()).unnest(f"{feature_to_plot}").collect(engine = "streaming")
+    
     labels = count[feature_to_plot].to_list()
     sizes = count['count'].to_list()
+   
 
     total = sum(sizes)
     percentages = [(s / total) * 100 for s in sizes]
@@ -47,6 +98,7 @@ def plot_pie_assignment(
         labels=None,
         autopct="%1.1f%%",
         pctdistance=0.8,
+        textprops={'fontsize': 8}
     )
 
     # Add legend with full info
@@ -54,27 +106,43 @@ def plot_pie_assignment(
         wedges,
         legend_labels,
         loc="center left",
-        bbox_to_anchor=(1, 0.5),frameon=False
+        bbox_to_anchor=(1, 0.5),frameon=False,
+        fontsize=8
     )
 
-    ax.set_title(f"Assignment \n total no. reads:{total}",)
+    ax.set_title(f"Assignment \n total no. reads:{total}",fontsize=10)
 
     if savefig:
-        plot_output = './plot_output'
+        plot_output = obj.plot_output
         if os.path.exists(plot_output) == False:
             os.makedirs(plot_output,exist_ok=True)
-        ofname = os.path.join(plot_output,f'Pie_{feature_to_plot}.png')
-        plt.savefig(ofname, format="png", dpi=144, bbox_inches='tight')
+        # ofname = os.path.join(plot_output,f'Pie_{feature_to_plot}.{save_format}')
+        ofname = plot_output/f'Pie_{feature_to_plot}.{save_format}'
+        plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
 
-
+    if return_data:
+        data = pd.DataFrame(data={'labels':labels,
+                                  'sizes':sizes})
+        return data
+    
+    if return_figname:
+                plt.close()
+                return ofname
+    
+    else:
+        plt.show()
+        plt.close()
 
 def plot_count_bar(obj,
-            layer:str,
+            layer:str='count',
             sample_id:List[str]=None,
             gene_list:List[str]=None,
             isoform_list:List[str]=None,
             use_transcript_model:bool=False,
-            savefig:bool=True
+            savefig:bool=True,
+            save_format:str='png',
+            return_data=False,
+            return_figname=False,
 ):
 
     """
@@ -90,22 +158,14 @@ def plot_count_bar(obj,
     gene_list: list of gene names to plot
     isoform_list: list of isoform IDs to plot
     use_transcript_model: bool, whether to use transcript model from IsoQuant
+    savefig: 
     """
 
 # --- loading gene dict
-    if use_transcript_model:
-        if not hasattr(obj, "gene_dict_model"):
-            obj.parse_input_gtf(use_ref=False)
-            
-        gene_dict = obj.gene_dict_model
-    else:  
-        if not hasattr(obj, "gene_dict_ref"):
-            obj.parse_input_gtf(use_ref=True)
-
-        gene_dict = obj.gene_dict_ref
-        
+    
     def is_nonempty(x):
         return x is not None and len(x) > 0
+
 
     # Validate inputs: require at least one non-empty
     if not (is_nonempty(gene_list) or is_nonempty(isoform_list)):
@@ -117,12 +177,28 @@ def plot_count_bar(obj,
 
     if sample_id is None:
         sample_id = list(obj.mdata.obs_names)
-
+    
     if is_nonempty(gene_list):
 
+        if use_transcript_model:
+            gene_var = obj.mdata['gene'].var
+            name_ = 'gene'
+        else:  
+            gene_var = obj.mdata['reference_gene'].var
+            name_ = 'reference_gene'
+        
         for g in gene_list:
+            # isoforms = np.array(list(gene_dict[g]['transcripts'].keys()))
 
-            isoforms = np.array(list(gene_dict[g]['transcripts'].keys()))
+            if g in gene_var.index:
+                isoforms = np.array(gene_var.loc[g,:]['transcripts'].split(','))
+            else:
+                b00l = gene_var['name']==g
+                if np.sum(b00l)==0:
+                    raise KeyError(f'{g} is not found in {name_} .var')
+                else:
+                    isoforms = np.array(gene_var.loc[b00l,:].iloc[0,:]['transcripts'].split(','))
+          
 
             if use_transcript_model:
                 X = obj.mdata['isoform'][sample_id,isoforms].to_df(layer)
@@ -132,6 +208,7 @@ def plot_count_bar(obj,
             ylabel = 'Transcripts per million' if layer=='tpm' else 'Counts'
 
             X_sorted = X.reindex(X.sum().sort_values(ascending=False).index, axis=1)
+    
             xticks = X_sorted.index
 
             #Adjusting the figure width based on numbers of samples
@@ -142,6 +219,7 @@ def plot_count_bar(obj,
             
             fig, ax = plt.subplots(figsize=(width, height))
 
+            # if len
             X_sorted.plot.bar(ax=ax,stacked=True)
             ax.legend(loc='center left', 
             bbox_to_anchor=(1, 0.5),
@@ -152,25 +230,58 @@ def plot_count_bar(obj,
             ax.set_xticklabels(xticks, rotation=40, ha='right')
             ax.set_xlabel('Sample')
 
+            # fig.tight_layout()
+
             if savefig:
-                plot_output = './plot_output'
+                plot_output = obj.plot_output
                 if os.path.exists(plot_output) == False:
                     os.makedirs(plot_output,exist_ok=True)
-                ofname = os.path.join(plot_output,f'Bar_{g}_TranscriptModel_{use_transcript_model}.png')
-                plt.savefig(ofname, format="png", dpi=144, bbox_inches='tight')
-                plt.show()
-                plt.close()
+                # ofname = os.path.join(plot_output,f'Bar_{g}_TranscriptModel_{use_transcript_model}.{save_format}')
+                ofname = plot_output/f'Bar_{g}_TranscriptModel_{use_transcript_model}.{save_format}'
+                plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
+            
             
     if is_nonempty(isoform_list):
-
-        if use_transcript_model:
-            X = obj.mdata['isoform'][sample_id,isoform_list].to_df(layer)
-        else: 
-            X = obj.mdata['reference_isoform'][sample_id,isoform_list].to_df(layer)
         
+        if use_transcript_model:
+            mod = 'isoform'
+        else: 
+            mod = 'reference_isoform'
+        
+        isoform_list = np.array(isoform_list)
+        var_names = np.asarray(obj.mdata[mod].var_names)
+        name_col = np.asarray(obj.mdata[mod].var['name'])
+        mask_in_var_names = np.isin(isoform_list, var_names)
+
+        if not mask_in_var_names.any():
+            mask_in_name_col = np.isin(isoform_list, name_col)
+
+            if not mask_in_name_col.any():
+                raise ValueError(f"None of {isoform_list} can be found in {mod} .var (neither var_names nor var['name'])")
+
+            matched_by_name = isoform_list[mask_in_name_col]
+
+            b_var = np.isin(name_col, matched_by_name)
+            isoform_var_names = np.asarray(obj.mdata[mod][:, b_var].var_names)
+            index = obj.mdata[mod].var.loc[b_var, 'name'].to_numpy()
+
+            found_mask = mask_in_name_col
+
+        else:
+            isoform_var_names = isoform_list[mask_in_var_names]
+            index = isoform_var_names
+            found_mask = mask_in_var_names
+
+        if np.any(~found_mask):
+            missing = isoform_list[~found_mask]
+            logging.info(f"{missing} not found in {mod} .var")
+
+
+        X = obj.mdata[mod][sample_id, isoform_var_names].to_df(layer)
+                   
         X_sorted = X.T.reindex(X.T.sum().sort_values(ascending=False).index, axis=1)
 
-        xticks = X_sorted.index
+        xticks = index
         ylabel = 'Counts' if layer=='count' else 'Transcripts per million'
             
         #Adjusting the figure width based on numbers of isoforms
@@ -191,20 +302,30 @@ def plot_count_bar(obj,
         ax.set_xticklabels(xticks, rotation=40, ha='right')
         ax.set_xlabel('Sample')
 
+        # fig.tight_layout()
+
         if savefig:
-            plot_output = './plot_output'
-            if os.path.exists(plot_output) == False:
-                os.makedirs(plot_output,exist_ok=True)
+            plot_output = obj.plot_output
             isoform_list_str = '_'.join(isoform_list)
-            ofname = os.path.join(plot_output,f'Bar_isoforms_{isoform_list_str}_TranscriptModel_{use_transcript_model}.png')
-            plt.show()
-            plt.savefig(ofname, format="png", dpi=144, bbox_inches='tight')
-            plt.close()
+            # ofname = os.path.join(plot_output,f'Bar_isoforms_{isoform_list_str}_TranscriptModel_{use_transcript_model}.{save_format}')
+            ofname = plot_output/f'Bar_isoforms_{isoform_list_str}_TranscriptModel_{use_transcript_model}.{save_format}'
+            plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
+        
+    if return_data:
+        return X_sorted
+    
+    if return_figname:
+                plt.close()
+                return ofname
+    
+    else:
+        plt.show()
+        plt.close()
+
 
 
 # --- helper function for plot_transcript_map, plot one gene per ax ---
 def _draw_gene_on_ax(ax,
-    obj,
     gene_id:str,
     gene_data: Dict,
     show_xlabel: bool = False,
@@ -283,13 +404,63 @@ def _draw_gene_on_ax(ax,
     else:
         ax.set_xlabel("")
 
+def _plot_transcript_map_helper(obj:isoquantViewer|str,
+            use_transcript_model:bool=False,
+            Ensembl_ID:List[str]=None,
+            gene_names:List[str]=None):
+        
+        if use_transcript_model:
+            if not os.path.exists(obj.genedb_filename_model):
+                obj.create_db(use_ref=True)
+            db = gffutils.FeatureDB(obj.genedb_filename_model)
+            dname = 'transcript model databse'
+        else:
+            if not os.path.exists(obj.genedb_filename):
+                obj.create_db(use_ref=False)
+            db = gffutils.FeatureDB(obj.genedb_filename)
+            dname = 'reference transcripts database'
+        
+        if isinstance(obj,str):
+            if os.path.exists(obj):
+                mdata = mudata.read_h5ad(obj)
 
-def plot_transcript_map(obj,
+        elif hasattr(obj, "mdata"):
+            mdata = obj.mdata 
+
+        else:
+            raise ValueError(f"Cant locate mdata.")
+        
+        if (Ensembl_ID is None) and (gene_names is None):
+            raise ValueError(f"Need to provide either  Ensembl_ID or gene_names.")
+
+        if gene_names is not None:
+            if use_transcript_model:
+                b00l = np.isin(mdata['gene'].var['name'],gene_names)
+                tmp_dict = mdata['gene'].var.loc[b00l,:]['name'].to_dict()
+                
+            else: 
+                b00l = np.isin(mdata['reference_gene'].var['name'],gene_names)
+                tmp_dict = mdata['reference_gene'].var.loc[b00l,:]['name'].to_dict()
+            
+            Ensembl_ID = list(tmp_dict.keys())
+
+            notin = np.isin(np.array(list(tmp_dict.values())),np.array(gene_names),invert=True)
+            notin = np.array(list(tmp_dict.values()))[notin]
+            if len(notin)>0:
+                logging.info(f'Skipping {notin}, not found in {dname} .var.')
+
+        return Ensembl_ID,db
+
+
+def plot_transcript_map(
+            obj:isoquantViewer|str,
             use_transcript_model:bool=False,
             Ensembl_ID:List[str]=None,
             gene_names:List[str]=None,
             figsize:tuple[float,float]=(8,3.5),
-            savefig:bool=True):
+            savefig:bool=True,
+            save_format:str='png',
+            return_figname:bool=False):
         """
         Plot transcript structures for specified genes.
         Parameters:
@@ -301,53 +472,15 @@ def plot_transcript_map(obj,
         """
         # Adapted from IsoQuant PlotOutputs.py  
 
-        # --- loading gene dict ---
-        if use_transcript_model:
-            if not hasattr(obj, "gene_dict_model"):
-                obj.parse_input_gtf(use_ref=False)
-                
-            gene_dict = obj.gene_dict_model
-            dname = 'transcript model (.gene_dict_model)'
-        else:  
-            if not hasattr(obj, "gene_dict_ref"):
-                obj.parse_input_gtf(use_ref=True)
+        Ensembl_ID_,db = _plot_transcript_map_helper(obj,use_transcript_model,Ensembl_ID,gene_names)
+        
 
-            gene_dict = obj.gene_dict_ref
-            dname = 'reference transcripts (.gene_dict_ref)'
+        for g in Ensembl_ID_:
+            try:
+                gene_dict = create_db_genedict_from_geneid(g,db)
+            except:
+                raise KeyError(f'{g} not in the databse')
 
-        if (Ensembl_ID is None) and (gene_names is None):
-            raise ValueError(f"Need to provide either  Ensembl_ID or gene_names.")
-
-        if gene_names is not None:
-            if use_transcript_model:
-                b00l = np.isin(obj.mdata['gene'].var['name'],gene_names)
-                tmp_dict = obj.mdata['gene'].var.loc[b00l,:]['name'].to_dict()
-                
-            else: 
-                b00l = np.isin(obj.mdata['reference_gene'].var['name'],gene_names)
-                tmp_dict = obj.mdata['reference_gene'].var.loc[b00l,:]['name'].to_dict()
-            
-            Ensembl_ID = list(tmp_dict.keys())
-
-            notin = np.isin(np.array(list(tmp_dict.values())),np.array(gene_names),invert=True)
-            notin = np.array(list(tmp_dict.values()))[notin]
-            if len(notin)>0:
-                logging.info(f'Skipping {notin}, not found in {dname} .var.')
-
-        genes = [g for g in (Ensembl_ID or []) if g in gene_dict]
-        if not genes:
-            if gene_names is not None:
-                raise ValueError(f"None of the provided gene_names were found in ({dname}).")
-            raise ValueError(f"None of the provided Ensembl_ID were found in ({dname}).")
-
-        notin = np.isin(np.array(Ensembl_ID),np.array(genes),invert=True)
-        notin = np.array(Ensembl_ID)[notin]
-        if len(notin)>0:
-            if gene_names is not None:
-                notin = [tmp_dict[i] for i in notin]
-            logging.info(f'Skipping {notin}, as they are not in the ({dname}).')
-
-        for g in genes:
             n_tx = len(gene_dict[g]["transcripts"])
             total_height = max(3.0, n_tx * 0.3)
 
@@ -358,7 +491,6 @@ def plot_transcript_map(obj,
 
             _draw_gene_on_ax(
                 ax=ax,
-                obj=obj,
                 gene_id = g,
                 gene_data=gene_dict[g],
                 show_xlabel=True,
@@ -370,13 +502,21 @@ def plot_transcript_map(obj,
 
 
             if savefig:
-                plot_output = './plot_output'
+                plot_output = obj.plot_output
                 if os.path.exists(plot_output) == False:
                     os.makedirs(plot_output,exist_ok=True)
-                ofname = os.path.join(plot_output,f'TranscriptMap_{g}_TranscriptModel_{use_transcript_model}l.png')
-                plt.savefig(ofname, format="png", dpi=144, bbox_inches='tight')
+                # ofname = os.path.join(plot_output,f'TranscriptMap_{g}_TranscriptModel_{use_transcript_model}.{save_format}')
+                ofname = plot_output/f'TranscriptMap_{g}_TranscriptModel_{use_transcript_model}.{save_format}'
+                plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
+            
+            if return_figname:
+                plt.close()
+                return ofname
+    
+            else:
                 plt.show()
                 plt.close()
+
 
 
 # --- helpfer functions for genomic region plotting ---
@@ -394,7 +534,7 @@ def genomic_formatter(x, pos):
     return f"{int(x):,}"
 
 def plot_genomic_region(
-        obj,
+        obj:isoquantViewer|str,
         region: Optional[str] = None,
         Ensembl_ID:Optional[str] = None,
         gene_name: Optional[str] = None,
@@ -404,7 +544,9 @@ def plot_genomic_region(
         padding:int=1000,
         figsize:tuple[float,float]=(10,18),
         label_fontsize: int=5,
-        savefig:bool=True
+        savefig:bool=True,
+        save_format:str='png',
+        return_figname:bool=False
     ):
     """
     Plot a genomic region using pyGenomeTracks classes
@@ -432,34 +574,51 @@ def plot_genomic_region(
 
     if (region is None) and (Ensembl_ID is None) and (gene_name is None):
         raise ValueError(f"Need to provide either region,Ensembl_ID or gene_names")
+    
+    if isinstance(obj,str):
+        if os.path.exists(obj):
+            mdata = mudata.read_h5ad(obj)   
+    elif hasattr(obj, "mdata"):
+        mdata = obj.mdata
+    else:
+        raise ValueError(f"Cant locate mdata.")
+
 
     if region is None:
-        if gene_name is not None: 
-            b00l = np.isin(obj.mdata['reference_gene'].var['name'],[gene_name])
+        if gene_name is not None: ### check in reference first, if doesnt exist go to the transcript model
+            b00l = np.isin(mdata['reference_gene'].var['name'],[gene_name])
             if np.sum(b00l) == 0: 
-                b00l_1 = np.isin(obj.mdata['gene'].var['name'],[gene_name])
+                b00l_1 = np.isin(mdata['gene'].var['name'],[gene_name])
                 if np.sum(b00l_1) == 0: 
                     raise ValueError(f"Can not find {gene_name} in either reference_gene.var or gene.var")
                 else:
-                    Ensembl_ID = obj.mdata['gene'].var.loc[b00l_1,:].index.values[0]
+                    Ensembl_ID = mdata['gene'].var.loc[b00l_1,:].index.values[0]
                     if np.sum(b00l_1)>1:
                         logging.info(f'More than one entry identified for {gene_name}, proceed with the entry with Ensembl ID: {Ensembl_ID}.')
-                    entry = obj.gene_dict_ref.get(Ensembl_ID)
+                    # entry = obj.gene_dict_model.get(Ensembl_ID)
+                    entry = mdata['gene'].var.loc[Ensembl_ID,:]
             else:
-                Ensembl_ID = obj.mdata['reference_gene'].var.loc[b00l,:].index.values[0]
+                Ensembl_ID = mdata['reference_gene'].var.loc[b00l,:].index.values[0]
                 if np.sum(b00l)>1:
                         logging.info(f'More than one entry identified for {gene_name}, proceed with the entry with Ensembl ID: {Ensembl_ID}.')
-                entry = obj.gene_dict_ref.get(Ensembl_ID)
+                # entry = obj.gene_dict_ref.get(Ensembl_ID)
+                entry = mdata['reference_gene'].var.loc[Ensembl_ID,:]
 
         elif Ensembl_ID is not None:
-            entry = obj.gene_dict_ref.get(Ensembl_ID)
+            
+            # entry = obj.gene_dict_ref.get(Ensembl_ID)
+            entry = mdata['reference_gene'].var.loc[Ensembl_ID,:]
             if entry is None:
-                entry = obj.gene_dict_model.get(Ensembl_ID)
+                # entry = obj.gene_dict_model.get(Ensembl_ID)
+                entry = mdata['gene'].var.loc[Ensembl_ID,:]
                 if entry is None:
-                     raise ValueError(f"Can not find {Ensembl_ID} in either reference (gene_dict_ref) or transcript model (gene_dict_model).")
+                    #  raise ValueError(f"Can not find {Ensembl_ID} in either reference (gene_dict_ref) or transcript model (gene_dict_model).")
+                    raise ValueError(f"Can not find {Ensembl_ID} in either reference (reference_gene.var) or transcript model (gene.var)")
+
 
         chrom, start, end = entry['chromosome'],entry['start'],entry['end']
-        region_str = f'{chrom}:{start}-{end}'
+        region_str = f'{chrom}:{int(start)}-{int(end)}'
+        region_str_saved = f'{chrom}_{int(start)}-{int(end)}'
         start-=padding
         end+=padding
     
@@ -499,9 +658,8 @@ def plot_genomic_region(
     tmp_gtf_model = 'model.slice.gtf'
     tmp_bed = 'reads.slice.bed'
    
-    str_ = f'{chrom} {start} {end}'
+    str_ = f'{chrom} {int(start)} {int(end)}'
     region = BedTool(str_, from_string=True)
-
 
     if plot_ref is True:
         BedTool(gtf_ref).intersect(region).saveas(tmp_gtf_ref)
@@ -638,13 +796,20 @@ def plot_genomic_region(
         ax.set_frame_on(False)
 
     if savefig:
-        plot_output = './plot_output'
+        plot_output = obj.plot_output
         if os.path.exists(plot_output) == False:
             os.makedirs(plot_output,exist_ok=True)
-        ofname = os.path.join(plot_output,f'GenomeTrack_{region_str}.png')
-        plt.savefig(ofname, format="png", dpi=144, bbox_inches='tight')
-        plt.show()
-        plt.close()
+        # ofname = os.path.join(plot_output,f'GenomeTrack_{region_str}.{save_format}')
+        ofname = plot_output/f'GenomeTrack_{region_str_saved}.{save_format}'
+        plt.savefig(ofname, format=save_format, dpi=144, bbox_inches='tight')
 
     for f in [tmp_gtf_ref,tmp_gtf_model,tmp_bed]:
         Path(f).unlink(missing_ok=True)
+
+    if return_figname:
+                plt.close()
+                return ofname
+    
+    else:
+        plt.show()
+        plt.close()
