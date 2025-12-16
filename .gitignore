@@ -6,3 +6,6 @@ utilities/__pycache__/plot_func.cpython-310.pyc
 utilities/.DS_Store
 .DS_Store
 utilities/.DS_Store
+.DS_Store
+utilities/notebook/local_config.py
+utilities/notebook/local_config.R
