@@ -11,6 +11,11 @@ knitr::opts_chunk$set(
   warning = FALSE
 )
 
+knitr::opts_chunk$set(
+  fig.path = "./plot_output",
+  dev = "png"
+)
+
 required_pkgs <- c("glue", "reticulate", "here","logger")
 
 missing_pkgs <- required_pkgs[!sapply(required_pkgs, requireNamespace, quietly = TRUE)]
