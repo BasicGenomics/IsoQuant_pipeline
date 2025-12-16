@@ -1,6 +1,9 @@
 ---
 title: 'Visualization IsoQuant output'
-output: github_document
+output:
+  html_document:
+    keep_md: true
+    
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 ```{r setup, include=FALSE}
