@@ -48,6 +48,6 @@ conda install  r-base -c conda-forge -y
 The example notebooks are located in ```/utilities/notebook``` [^note]. 
 
 [^note]:
-    The codes are organised under the assumption that the notebook are exceuted from ```/utilities/notebook```, while the source codes are located in ```/utilities```.
+    The codes for visualising the results are organised under the assumption that the notebook are exceuted from ```/utilities/notebook```, while the source codes are located in ```/utilities```.
 
 
