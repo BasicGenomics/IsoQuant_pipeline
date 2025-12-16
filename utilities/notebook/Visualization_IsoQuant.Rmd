@@ -1,8 +1,6 @@
 ---
 title: 'Visualization IsoQuant output'
-output:
-  pdf_document:
-    keep_md: true
+output: github_document
     
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
@@ -32,7 +30,7 @@ source("local_config.R")  # where the path for conda_path and viewer_code_path a
 use_condaenv(conda_path, required = TRUE) 
 use_python(glue("{conda_path}/bin/python"), required = TRUE)
 source(viewer_code_path) 
-py_config() # for checking if the session is configured with the environment you specified
+#py_config() # for checking if the session is configured with the environment you specified
 ```
 
 
@@ -42,9 +40,8 @@ py_config() # for checking if the session is configured with the environment you
 reference_gtf <- '~/Documents/ref/geneannotations.gff3' # path to reference gene annotation 
 viewer<-isoquantViewer(output_directory = output_directory,        
     prefix = prefix, 
-    reference_gtf = reference_gtf,
-    plot_output = '~/Desktop/'
-      )
+    reference_gtf = reference_gtf      
+    )
 
 # * Plots are automatically saved in the folder "./plot_output" if plot_output is not defined
 ```
