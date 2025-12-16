@@ -1,8 +1,8 @@
 ---
 title: 'Visualization IsoQuant output'
-output:
-  pdf_document:
-    keep_md: true
+format:
+  html:
+    embed-resources: true
     
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
@@ -22,6 +22,13 @@ if (length(missing_pkgs)) install.packages(missing_pkgs)
 
 
 ```{r}
+
+required_pkgs <- c("glue", "reticulate", "here","logger")
+
+missing_pkgs <- required_pkgs[!sapply(required_pkgs, requireNamespace, quietly = TRUE)]
+if (length(missing_pkgs)) install.packages(missing_pkgs)
+
+
 library(reticulate)
 library(glue)
 
@@ -32,7 +39,7 @@ source("local_config.R")  # where the path for conda_path and viewer_code_path a
 use_condaenv(conda_path, required = TRUE) 
 use_python(glue("{conda_path}/bin/python"), required = TRUE)
 source(viewer_code_path) 
-py_config() # for checking if the session is configured with the environment you specified
+#py_config() # for checking if the session is configured with the environment you specified
 ```
 
 
