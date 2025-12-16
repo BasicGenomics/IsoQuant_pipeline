@@ -4,9 +4,7 @@ from collections import Counter
 import numpy as np
 import matplotlib.ticker as ticker
 import pandas as pd
-from pygenometracks.tracks.BigWigTrack import BigWigTrack
 from pygenometracks.tracks.GtfTrack import GtfTrack
-from pygenometracks.tracks.ScaleBarTrack import ScaleBarTrack
 from pygenometracks.tracks.BedTrack import BedTrack
 import mudata
 

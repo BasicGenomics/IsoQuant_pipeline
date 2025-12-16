@@ -5,24 +5,13 @@ output:
     keep_md: true
     theme: united
     df_print: kable
-date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+date: 'Compiled: December 16, 2025'
 ---
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-  echo = TRUE,
-  message = FALSE,
-  warning = FALSE
-)
-
-required_pkgs <- c("glue", "reticulate", "here","logger")
-
-missing_pkgs <- required_pkgs[!sapply(required_pkgs, requireNamespace, quietly = TRUE)]
-if (length(missing_pkgs)) install.packages(missing_pkgs)
-
-```
 
 
-```{r}
+
+
+``` r
 library(reticulate)
 library(glue)
 
@@ -36,8 +25,21 @@ source(viewer_code_path)
 py_config() # for checking if the session is configured with the environment you specified
 ```
 
+```
+## python:         /Users/kawai/miniconda3/envs/isoquant_viewer_R/bin/python
+## libpython:      /Users/kawai/miniconda3/envs/isoquant_viewer_R/lib/libpython3.10.dylib
+## pythonhome:     /Users/kawai/miniconda3/envs/isoquant_viewer_R:/Users/kawai/miniconda3/envs/isoquant_viewer_R
+## version:        3.10.13 (main, Sep 11 2023, 08:16:02) [Clang 14.0.6 ]
+## numpy:          /Users/kawai/miniconda3/envs/isoquant_viewer_R/lib/python3.10/site-packages/numpy
+## numpy_version:  2.2.5
+## sys:            [builtin module]
+## 
+## NOTE: Python version was forced by use_python() function
+```
 
-```{r}
+
+
+``` r
 #output_directory <- "../prefix/results/isoquant_output/" # path to IsoQuantOutput directory
 #prefix <- "prefix" # Name of the project
 reference_gtf <- '~/Documents/ref/geneannotations.gff3' # path to reference gene annotation 
@@ -66,15 +68,22 @@ Function:
   Can either be from the raw count or TPM matrix using "layer", and based on the transcript model or the reference annotation (use_transcript_model=True or False, default is False). Default is plotting all available samples, but can be limited to specific sample using "sample_id" = [sample1, sample2, and etc.]
 
 
-```{r}
+
+``` r
 fname<-plot_count_bar(viewer,layer='count',
           isoform_list = list('ENST00000008440','transcript92.Y.nnic'),
           use_transcript_model=TRUE)
 knitr::include_graphics(as.character(fname))
+```
 
+<img src="../../../../../../Desktop/Bar_isoforms_ENST00000008440_transcript92.Y.nnic_TranscriptModel_True.png" width="698" />
+
+``` r
 fname<-plot_pie_assignment(viewer,feature_to_plot = 'assignment_type')
 knitr::include_graphics(as.character(fname))
 ```
+
+<img src="../../../../../../Desktop/Pie_assignment_type.png" width="830" />
 
 #### Visualizing transcripts within a genomic region 
 
@@ -82,14 +91,15 @@ knitr::include_graphics(as.character(fname))
 
   Visualize transcript(s) for specified gene(s)/ensembl ID within the corresponding genomic region(s). Can be based on the transcript model or the reference genome. (Based on IsoQuant:plot_transcript_map) 
 
-```{r}
 
+``` r
 fname<-plot_transcript_map(viewer,
                     gene_names=list("TSPAN6"),
                     use_transcript_model=TRUE)
 knitr::include_graphics(as.character(fname))
-
 ```
+
+<img src="../../../../../../Desktop/TranscriptMap_ENSG00000000003_TranscriptModel_True.png" width="1116" />
 
 * plot_genomic_region
 
@@ -110,9 +120,11 @@ knitr::include_graphics(as.character(fname))
 
 
 
-```{r,out.height="100%"}
+
+``` r
 fname<-plot_genomic_region(viewer,
                     gene_name = 'TSPAN6')
 knitr::include_graphics(as.character(fname))
-
 ```
+
+<img src="../../../../../../Desktop/GenomeTrack_X_100627109-100639991.png" width="1184" height="100%" />
