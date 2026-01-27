@@ -4,6 +4,7 @@ import tempfile
 import pandas as pd
 from scipy import sparse
 import anndata
+anndata.settings.allow_write_nullable_strings = True
 from pathlib import Path
 from mudata import MuData
 import os
