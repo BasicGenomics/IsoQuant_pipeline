@@ -623,6 +623,9 @@ def plot_genomic_region(
     else:
         region_str = region
         chrom, start, end = _parse_region(region)
+        region_str_saved = f'{chrom}_{int(start)}-{int(end)}'
+        start-=padding
+        end+=padding
 
     plot_ref = False
     plot_model = False
