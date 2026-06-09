@@ -1,11 +1,14 @@
 name: isoquant_viewer
 channels:
-  - defaults
+  - conda-forge
   - bioconda
+  - defaults
 dependencies:
   - pip=25.2
   - python=3.10.13
   - oarfish=0.5.1
+  - bedtools=2.31.0
+  - pybedtools
   - pip:
       - anndata==0.11.4
       - mudata==0.3.2

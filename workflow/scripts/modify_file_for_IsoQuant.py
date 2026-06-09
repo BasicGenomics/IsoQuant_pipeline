@@ -3,17 +3,18 @@ import pysam
 import array
 
 def main():
-    parser = argparse.ArgumentParser(description='Modify bam file for IsoQuant', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-i','--input',metavar='input', type=str, help='Input .bam file')
-    parser.add_argument('-o','--output',metavar='output', type=str, help='Output .bam file')
+    parser = argparse.ArgumentParser(description='Modify BAM file for IsoQuant', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-i', '--input', metavar='Input', type=str, help='Input .bam file')
+    parser.add_argument('-o', '--output' ,metavar='Output', type=str, help='Output .bam file')
 
     args = parser.parse_args()
+
     bam_infile = args.input
     bam_outfile = args.output
     bam_in = pysam.AlignmentFile(bam_infile, 'rb')
     bam_out = pysam.AlignmentFile(bam_outfile, 'wb', template=bam_in)
     for read in bam_in.fetch(until_eof=True):
-        if read.get_tag('TC') > 0 and read.get_tag('IC') > 0 and read.get_tag('FC') > 0:
+        if read.get_tag('TC') > 0 and read.get_tag('FC') > 0:
             read.set_tag('CP', True)
         else:
             read.set_tag('CP', False)
@@ -40,5 +41,6 @@ def main():
         else:
             bam_out.write(read)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

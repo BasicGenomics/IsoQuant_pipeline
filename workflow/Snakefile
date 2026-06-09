@@ -1,0 +1,5 @@
+# ── BaseCode IsoQuant post-processing pipeline — main entrypoint ──
+# Snakemake auto-discovers workflow/Snakefile when run from the repo root,
+# so the CLI does not need -s. Run via:  ./BaseCodeIsoQuant -c config/config.yaml -t 30
+
+include: "rules/run_isoquant.smk"
