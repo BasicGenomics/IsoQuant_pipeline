@@ -1,2 +1,4 @@
 name: 'test_project'
 reference: 'Homo_sapiens'
+collapse_gff: true
+collapse_mode: cds

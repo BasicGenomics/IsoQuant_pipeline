@@ -44,10 +44,17 @@ if "polya_requirement" not in config:
 if "read_group" not in config:
     config["read_group"] = "tag:SM"
 
+if "collapse_gff" not in config:
+    config["collapse_gff"] = True
+
+if "collapse_mode" not in config:
+    config["collapse_mode"] = "cds"
+
 GROUP_TOKEN = config["read_group"].replace(":", "_")
 
 REF = "{resource_dir}/genome_references/{reference}/reference.fa".format(resource_dir = config["resource_dir"], reference = config["reference"])
 GFF = "{resource_dir}/genome_references/{reference}/geneannotations".format(resource_dir=config["resource_dir"], reference = config["reference"])
+COLLAPSED = "{}_collapsed_{}.gff3".format(GFF, config["collapse_mode"])
 
 include: "rules/run_isoquant.smk"
 
