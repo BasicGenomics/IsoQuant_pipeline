@@ -85,6 +85,7 @@ def main():
     parser = argparse.ArgumentParser(description='Generate MuData object', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-c','--counts', metavar='Counts', type=str, help='Input counts .tsv file')
     parser.add_argument('-m','--models', metavar='Transcript Models', type=str, help='Input transcript models .gtf file')
+    parser.add_argument('-g','--genedb', metavar='GeneDB', type=str, help='IsoQuant gene database .db file')
     parser.add_argument('-o','--output', metavar='Output', type=str, help='Output .h5mu file')
 
     args = parser.parse_args()
@@ -126,7 +127,6 @@ def main():
     gene_adata = generate_anndata(gene_X, obs_df, gene_var_df)
     mdata = MuData({'gene': gene_adata, 'isoform': transcript_adata})
 
-    ## if TPM file based on transcript model exists, add it as layer
     tpm_file = transcript_count_file.replace('_counts.linear.tsv', '_tpm.tsv')
     if os.path.exists(tpm_file):
         tpm = pd.read_csv(tpm_file,sep='\t',index_col=0, comment=None)
@@ -137,8 +137,7 @@ def main():
         mdata['isoform'].layers['count'] = mdata['isoform'].X
         mdata['isoform'].layers['tpm'] = tpm.T
 
-
-    genedb = 'results/isoquant/geneannotations.db'
+    genedb = args.genedb
     if os.path.exists(genedb):
         gene_dict, transcript_dict = parse_gtf(gtffile,genedb)
 

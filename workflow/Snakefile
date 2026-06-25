@@ -3,6 +3,7 @@
 # https://snakemake.readthedocs.io/en/stable/snakefiles/best_practices.html,
 # in particular regarding the standardized folder structure mentioned there. 
 
+from snakemake.executors import shell
 from snakemake.utils import min_version
 import time as _bc_time
 import sys
@@ -16,6 +17,8 @@ if 'resource_dir' not in config:
 else:
     if config['resource_dir'] == '':
         config['resource_dir'] = '/usr/local/app/resources/'
+
+config['resource_dir'] = config['resource_dir'].rstrip('/')
 
 if "basecode_max_gap" not in config:
     config["basecode_max_gap"] = 550
@@ -55,50 +58,26 @@ GROUP_TOKEN = config["read_group"].replace(":", "_")
 REF = "{resource_dir}/genome_references/{reference}/reference.fa".format(resource_dir = config["resource_dir"], reference = config["reference"])
 GFF = "{resource_dir}/genome_references/{reference}/geneannotations".format(resource_dir=config["resource_dir"], reference = config["reference"])
 COLLAPSED = "{}_collapsed_{}.gff3".format(GFF, config["collapse_mode"])
+ANNOTATION = COLLAPSED if config["collapse_gff"] else "{}.gff3".format(GFF)
+GENEDB = "results/isoquant/{}.db".format(os.path.splitext(os.path.basename(ANNOTATION))[0])
 
 include: "rules/run_isoquant.smk"
 
 onstart:
     config['_bc_start'] = _bc_time.time()
-    print("▶ BaseCode IsoQuant Pipeline starting", file=sys.stderr, flush=True)
-    print(f"  Run ID: {config['name']}  (BaseCode mode, max_gap={config['basecode_max_gap']})", file=sys.stderr, flush=True)
+    print("▶ BaseCode IsoQuant Pipeline starting", file=sys.stdout, flush=True)
+    print(f"  Run ID: {config['name']}  (BaseCode mode, max_gap={config['basecode_max_gap']})", file=sys.stdout, flush=True)
 
 onsuccess:
     elapsed = int(_bc_time.time() - config.get('_bc_start', _bc_time.time()))
     h, rem = divmod(elapsed, 3600)
     m, s = divmod(rem, 60)
     elapsed_str = f"{h}h {m}m {s}s" if h else (f"{m}m {s}s" if m else f"{s}s")
-    print(f"✓ BaseCode IsoQuant Pipeline completed in {elapsed_str}", file=sys.stderr, flush=True)
+    print(f"✓ BaseCode IsoQuant Pipeline completed in {elapsed_str}", file=sys.stdout, flush=True)
 
 onerror:
-    import re as _bc_re
-    _e = sys.stderr
-    print("", file=_e, flush=True)
-    print("✗ BaseCode IsoQuant Pipeline failed", file=_e, flush=True)
-    print(f"  Snakemake log: {log}", file=_e, flush=True)
-    failed_rules, rule_logs = [], []
-    try:
-        with open(log) as _fh:
-            _txt = _fh.read()
-    except Exception:
-        _txt = ""
-    failed_rules = _bc_re.findall(r"Error in rule (\S+?):", _txt)
-    for m in _bc_re.finditer(r"^\s*log:\s*(\S+)", _txt, _bc_re.MULTILINE):
-        p = m.group(1).rstrip(",")
-        if p not in rule_logs:
-            rule_logs.append(p)
-    if failed_rules:
-        print(f"  Failed rule(s): {', '.join(sorted(set(failed_rules)))}", file=_e, flush=True)
-    shown = False
-    for p in rule_logs:
-        if os.path.exists(p) and os.path.getsize(p) > 0:
-            shown = True
-            print(f"\n  --- tail of {p} ---", file=_e, flush=True)
-            shell("tail -n 40 {p:q} 1>&2")
-    if not shown:
-        print("\n  --- tail of Snakemake log ---", file=_e, flush=True)
-        shell("tail -n 50 {log} 1>&2")
-    print("\n  Per-rule logs: results/isoquant/logs/", file=_e, flush=True)
-    
+    print("✗ BaseCode IsoQuant Pipeline failed", file=sys.stdout, flush=True)
+    print("  See results/isoquant/.snakemake/log/ for details", file=sys.stdout, flush=True)
+
 rule all:
     input: "results/isoquant/mudata/{name}_counts.h5mu".format(name=config["name"])

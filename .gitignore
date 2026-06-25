@@ -4,4 +4,4 @@ utilities/__pycache__/isoquantViewer.cpython-310.pyc
 utilities/__pycache__/plot_func.cpython-310.pyc
 utilities/.DS_Store
 utilities/notebook/_local_config.py
-utilities/notebook/_local_config.R
+utilities/notebook/_local_config.R.snakemake/
