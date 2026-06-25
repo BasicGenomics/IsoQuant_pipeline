@@ -3,7 +3,6 @@
 # https://snakemake.readthedocs.io/en/stable/snakefiles/best_practices.html,
 # in particular regarding the standardized folder structure mentioned there. 
 
-from snakemake.executors import shell
 from snakemake.utils import min_version
 import time as _bc_time
 import sys
