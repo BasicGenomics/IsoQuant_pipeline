@@ -22,6 +22,18 @@ config['resource_dir'] = config['resource_dir'].rstrip('/')
 if "basecode_max_gap" not in config:
     config["basecode_max_gap"] = 550
 
+if "basecode_correct" not in config:
+    config["basecode_correct"] = False
+
+if "basecode_keep_nonunique" not in config:
+    config["basecode_keep_nonunique"] = False
+
+if "basecode_no_context_resolve" not in config:
+    config["basecode_no_context_resolve"] = False
+
+if "basecode_end_resolve" not in config:
+    config["basecode_end_resolve"] = False
+
 if "data_type" not in config:
     config["data_type"] = "pacbio_ccs"
 

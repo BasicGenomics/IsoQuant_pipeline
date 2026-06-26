@@ -27,8 +27,14 @@ rule run_isoquant:
             models = "results/isoquant/{name}/{name}.transcript_models.gtf".format(name = config["name"]),
             genedb = GENEDB
     params: ref = REF,
+            basecode_flags = " ".join(flag for flag, on in [
+                ("--basecode_correct",            config["basecode_correct"]),
+                ("--basecode_keep_nonunique",     config["basecode_keep_nonunique"]),
+                ("--basecode_no_context_resolve", config["basecode_no_context_resolve"]),
+                ("--basecode_end_resolve",        config["basecode_end_resolve"]),
+            ] if on),
     log: "results/isoquant/logs/{name}.run_isoquant.log".format(name=config["name"])
-    shell: "python IsoQuant/isoquant.py --reference {params.ref} --genedb {input.gff3} --bam {input.bam} --data_type {config[data_type]} --basecode --basecode_max_gap {config[basecode_max_gap]} --matching_strategy {config[matching_strategy]} --stranded {config[stranded]} -p {config[name]} -o results/isoquant/ --read_group {config[read_group]} --complete_genedb --model_construction_strategy {config[model_construction_strategy]} --count_exons --transcript_quantification {config[transcript_quantification]} --gene_quantification {config[gene_quantification]} --polya_requirement {config[polya_requirement]} > {log} 2>&1"
+    shell: "python IsoQuant/isoquant.py --reference {params.ref} --genedb {input.gff3} --bam {input.bam} --data_type {config[data_type]} --basecode --basecode_max_gap {config[basecode_max_gap]} {params.basecode_flags} --matching_strategy {config[matching_strategy]} --stranded {config[stranded]} -p {config[name]} -o results/isoquant/ --read_group {config[read_group]} --complete_genedb --model_construction_strategy {config[model_construction_strategy]} --count_exons --transcript_quantification {config[transcript_quantification]} --gene_quantification {config[gene_quantification]} --polya_requirement {config[polya_requirement]} > {log} 2>&1"
 
 rule make_mudata:
     input: counts = "results/isoquant/{name}/{name}.discovered_transcript_grouped_{token}_counts.linear.tsv".format(name = config["name"], token = GROUP_TOKEN),

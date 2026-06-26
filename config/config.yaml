@@ -2,3 +2,8 @@ name: 'test_project'
 reference: 'Homo_sapiens'
 collapse_gff: true
 collapse_mode: cds
+basecode_max_gap: 550                
+basecode_correct: false
+basecode_keep_nonunique: false
+basecode_no_context_resolve: false
+basecode_end_resolve: false
