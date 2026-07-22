@@ -52,6 +52,9 @@ if "data_type" not in config:
 if "matching_strategy" not in config:
     config["matching_strategy"] = "precise"
 
+if "delta" not in config:
+    config["delta"] = "auto"
+
 if "transcript_quantification" not in config:
     config["transcript_quantification"] = "unique_only"
 

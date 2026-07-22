@@ -43,9 +43,11 @@ rule run_isoquant:
                 ("--basecode_keep_nonunique",     config["basecode_keep_nonunique"]),
                 ("--basecode_no_context_resolve", config["basecode_no_context_resolve"]),
                 ("--basecode_end_resolve",        config["basecode_end_resolve"]),
-            ] if on)
+            ] if on),
+            delta_flag = ("" if str(config.get("delta", "auto")).lower() in ("auto", "none", "")
+                          else "--delta {}".format(config["delta"]))
     log: "results/isoquant/logs/{name}.run_isoquant.log".format(name=config["name"])
-    shell: "python IsoQuant/isoquant.py -p {config[name]} --reference {params.ref} --genedb {input.gff3} --complete_genedb --bam {input.bam} --read_group {config[read_group]} --data_type {config[data_type]} --basecode --basecode_max_gap {config[basecode_max_gap]} {params.basecode_flags} --count_exons --matching_strategy {config[matching_strategy]} --transcript_quantification {config[transcript_quantification]} --gene_quantification {config[gene_quantification]} --model_construction_strategy {config[model_construction_strategy]} --polya_requirement {config[polya_requirement]} --check_canonical --bam_tags TC,IC,FC,NR,ER,IR,AD -o results/isoquant/ --sqanti_output --large_output read_assignments corrected_bed read2transcripts > {log} 2>&1"
+    shell: "python IsoQuant/isoquant.py -p {config[name]} --reference {params.ref} --genedb {input.gff3} --complete_genedb --bam {input.bam} --read_group {config[read_group]} --data_type {config[data_type]} --basecode --basecode_max_gap {config[basecode_max_gap]} {params.basecode_flags} --count_exons --matching_strategy {config[matching_strategy]} {params.delta_flag} --transcript_quantification {config[transcript_quantification]} --gene_quantification {config[gene_quantification]} --model_construction_strategy {config[model_construction_strategy]} --polya_requirement {config[polya_requirement]} --check_canonical --bam_tags TC,IC,FC,NR,ER,IR,AD -o results/isoquant/ --sqanti_output --large_output read_assignments corrected_bed read2transcripts > {log} 2>&1"
 
 rule make_mudata:
     input: disc_transcript_counts = "results/isoquant/{name}/{name}.discovered_transcript_grouped_{token}_counts.linear.tsv".format(name=config["name"], token = GROUP_TOKEN),
