@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import argparse, re, sys
 
+version = "1.0"
+
 TX_TYPES = {"transcript", "mRNA"}
 
 def attr(s, k):
@@ -50,6 +52,10 @@ def main():
     ap.add_argument("-i", "--input", required=True)
     ap.add_argument("-o", "--output", required=True)
     ap.add_argument("--group-by", choices=["chain", "cds", "chain_cds"], default="chain")
+    ap.add_argument("--representative", choices=["canonical", "longest"], default="canonical",
+                    help="per group keep: 'canonical' = best tag, tie-break longest span; "
+                         "'longest' = longest span (longest UTRs) so reads with long UTRs still fit, "
+                         "tie-break best tag")
     a = ap.parse_args()
 
     gene_line = None
@@ -102,7 +108,10 @@ def main():
             clusters.append(cur)
         keep = set()
         for tids in list(groups.values()) + clusters:
-            best = min(tids, key=lambda x: (tag_tier(tx[x]["tags"]), -tx[x]["span"]))
+            if a.representative == "longest":
+                best = min(tids, key=lambda x: (-tx[x]["span"], tag_tier(tx[x]["tags"])))
+            else:
+                best = min(tids, key=lambda x: (tag_tier(tx[x]["tags"]), -tx[x]["span"]))
             keep.add(best)
         fout.write(gene_line)
         for tid in order:
@@ -111,7 +120,6 @@ def main():
                 tkept += 1
                 fout.write(tx[tid]["tline"])
                 fout.writelines(tx[tid]["children"])
-
     with open(a.input) as fin:
         for line in fin:
             if line.startswith("#"):
@@ -137,7 +145,6 @@ def main():
                     elif typ == "CDS":
                         tx[tid]["cds"].append((int(c[3]), int(c[4])))
         flush()
-
     fout.close()
     sys.stderr.write(f"group-by={a.group_by}  genes={ng}  tx_in={tin}  kept={tkept}  "
                      f"dropped={tin-tkept} ({100*(tin-tkept)/max(tin,1):.1f}%)\n")

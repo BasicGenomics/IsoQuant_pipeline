@@ -19,6 +19,18 @@ else:
 
 config['resource_dir'] = config['resource_dir'].rstrip('/')
 
+if "full_length_only" not in config:
+    config["full_length_only"] = False
+
+if "collapse_annotation" not in config:
+    config["collapse_annotation"] = True
+
+if "collapse_mode" not in config:
+    config["collapse_mode"] = "cds"
+
+if "collapse_representative" not in config:
+    config["collapse_representative"] = "canonical"
+
 if "basecode_max_gap" not in config:
     config["basecode_max_gap"] = 550
 
@@ -26,22 +38,16 @@ if "basecode_correct" not in config:
     config["basecode_correct"] = False
 
 if "basecode_keep_nonunique" not in config:
-    config["basecode_keep_nonunique"] = False
+    config["basecode_keep_nonunique"] = True
 
 if "basecode_no_context_resolve" not in config:
     config["basecode_no_context_resolve"] = False
 
 if "basecode_end_resolve" not in config:
-    config["basecode_end_resolve"] = False
+    config["basecode_end_resolve"] = True
 
 if "data_type" not in config:
     config["data_type"] = "pacbio_ccs"
-
-if "stranded" not in config:
-    config["stranded"] = "none"
-
-if "model_construction_strategy" not in config:
-    config["model_construction_strategy"] = "default_pacbio"
 
 if "matching_strategy" not in config:
     config["matching_strategy"] = "precise"
@@ -52,25 +58,31 @@ if "transcript_quantification" not in config:
 if "gene_quantification" not in config:
     config["gene_quantification"] = "unique_splicing_consistent"
 
+if "model_construction_strategy" not in config:
+    config["model_construction_strategy"] = "default_pacbio"
+
 if "polya_requirement" not in config:
     config["polya_requirement"] = "auto"
 
 if "read_group" not in config:
     config["read_group"] = "tag:SM"
 
-if "collapse_gff" not in config:
-    config["collapse_gff"] = True
+if "annotate_bam" not in config:
+    config["annotate_bam"] = False
 
-if "collapse_mode" not in config:
-    config["collapse_mode"] = "cds"
+if "duplicate_mode" not in config:
+    config["duplicate_mode"] = "all"
 
 GROUP_TOKEN = config["read_group"].replace(":", "_")
 
 REF = "{resource_dir}/genome_references/{reference}/reference.fa".format(resource_dir = config["resource_dir"], reference = config["reference"])
 GFF = "{resource_dir}/genome_references/{reference}/geneannotations".format(resource_dir=config["resource_dir"], reference = config["reference"])
-COLLAPSED = "{}_collapsed_{}.gff3".format(GFF, config["collapse_mode"])
-ANNOTATION = COLLAPSED if config["collapse_gff"] else "{}.gff3".format(GFF)
+COLLAPSED = "{}_collapsed_{}_{}.gff3".format(GFF, config["collapse_mode"], config["collapse_representative"])
+ANNOTATION = COLLAPSED if config["collapse_annotation"] else "{}.gff3".format(GFF)
 GENEDB = "results/isoquant/{}.db".format(os.path.splitext(os.path.basename(ANNOTATION))[0])
+READ_ASSIGNMENTS = "results/isoquant/{name}/{name}.read_assignments.tsv.gz".format(name=config["name"])
+ANNOTATED_BAM = "results/isoquant/{name}.annotated.bam".format(name=config["name"])
+VARIANT_SUPPORT = "results/isoquant/{name}/{name}.variant_support.per_variant.tsv".format(name=config["name"])
 
 include: "rules/run_isoquant.smk"
 
@@ -91,4 +103,4 @@ onerror:
     print("  See results/isoquant/.snakemake/log/ for details", file=sys.stdout, flush=True)
 
 rule all:
-    input: "results/isoquant/mudata/{name}_counts.h5mu".format(name=config["name"])
+    input: ["results/isoquant/mudata/{name}_counts.h5mu".format(name=config["name"]), VARIANT_SUPPORT] + ([ANNOTATED_BAM + ".bai"] if config["annotate_bam"] else [])
