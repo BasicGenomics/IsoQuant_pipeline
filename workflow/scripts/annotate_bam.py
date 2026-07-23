@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import array
 import gzip
 import sys
 import pysam
@@ -88,6 +89,35 @@ def load_read2transcripts(path):
     return r2t
 
 
+def load_bed_blocks(path):
+    """read_id -> (chromStart0, [(gstart0, size), ...]) from IsoQuant corrected_reads.bed[.gz]."""
+    blocks = {}
+    opener = gzip.open if path.endswith(".gz") else open
+    with opener(path, "rt") as f:
+        for line in f:
+            if line.startswith("#") or line.startswith("track") or not line.strip():
+                continue
+            c = line.rstrip("\n").split("\t")
+            if len(c) < 12:
+                continue
+            cstart, name = int(c[1]), c[3]
+            sizes = [int(x) for x in c[10].rstrip(",").split(",") if x != ""]
+            starts = [int(x) for x in c[11].rstrip(",").split(",") if x != ""]
+            blocks[name] = (cstart, [(cstart + starts[i], sizes[i]) for i in range(len(sizes))])
+    return blocks
+
+
+def cigar_from_blocks(exons):
+    """[(gstart, size), ...] -> [(op, len)]: M for each exon, N for the gap between them."""
+    cig, prev_end = [], None
+    for gstart, size in exons:
+        if prev_end is not None and gstart - prev_end > 0:
+            cig.append((3, gstart - prev_end))   # N (recovered intron / filled gap)
+        cig.append((0, size))                     # M (imputed exon)
+        prev_end = gstart + size
+    return cig
+
+
 def tag_bam(
     input_bam,
     output_bam,
@@ -95,6 +125,7 @@ def tag_bam(
     duplicate_mode="best",
     tag_unassigned=False,
     read2transcripts=None,
+    corrected_bed=None,
 ):
     assignments = load_assignments(assignments_gz, duplicate_mode)
     print(f"Loaded assignments for {len(assignments):,} read_ids")
@@ -102,11 +133,35 @@ def tag_bam(
     if read2transcripts:
         r2t = load_read2transcripts(read2transcripts)
         print(f"Loaded discovered-model assignments for {len(r2t):,} read_ids")
-    total = tagged = missing = 0
+    blocks = {}
+    if corrected_bed:
+        blocks = load_bed_blocks(corrected_bed)
+        print(f"Loaded imputed structure (corrected_bed) for {len(blocks):,} read_ids")
+    total = tagged = missing = imputed = 0
     with pysam.AlignmentFile(input_bam, "rb") as bam_in, \
          pysam.AlignmentFile(output_bam, "wb", header=bam_in.header) as bam_out:
         for read in bam_in:
             total += 1
+            # Optional: rewrite CIGAR to the imputed exon/intron structure (from corrected_bed).
+            # Filled bases were never sequenced, so SEQ becomes N; original CIGAR kept in OC.
+            if corrected_bed:
+                bentry = blocks.get(read.query_name)
+                if bentry is not None:
+                    orig_cigar = read.cigarstring or ""
+                    cstart, exons = bentry
+                    new_cig = cigar_from_blocks(exons)
+                    seqlen = sum(sz for _, sz in exons)
+                    read.query_sequence = "N" * seqlen
+                    read.reference_start = cstart
+                    read.cigartuples = new_cig
+                    read.query_qualities = array.array("B", [30] * seqlen)
+                    read.set_tag("OC", orig_cigar, "Z", replace=True)
+                    changed = read.cigarstring != orig_cigar
+                    read.set_tag("IM", 1 if changed else 0, "i", replace=True)
+                    if changed:
+                        imputed += 1
+                else:
+                    read.set_tag("IM", 0, "i", replace=True)
             entry = assignments.get(read.query_name)
             if entry is not None:
                 if duplicate_mode == "all":
@@ -139,6 +194,8 @@ def tag_bam(
     print(f"Total BAM records processed: {total:,}")
     print(f"Tagged BAM records: {tagged:,}")
     print(f"BAM records without IsoQuant assignment: {missing:,}")
+    if corrected_bed:
+        print(f"Reads with CIGAR rewritten to imputed structure (IM=1): {imputed:,}")
 
 
 def main():
@@ -153,8 +210,11 @@ def main():
                              "'best' = highest-priority type (1 isoform); "
                              "'all' = every compatible isoform, ZI and ZE ';'-joined and positionally aligned (ZI[i] <-> ZE[i])")
     parser.add_argument("--tag-unassigned", action="store_true", help="Tag reads without assignment")
+    parser.add_argument("--corrected-bed", default=None,
+                        help="IsoQuant corrected_reads.bed[.gz]; if given, also rewrite each read's "
+                             "CIGAR to its imputed exon/intron structure (SEQ->N, OC=orig cigar, IM=1 if changed)")
     args = parser.parse_args()
- 
+
     tag_bam(
         input_bam=args.input,
         output_bam=args.output,
@@ -162,6 +222,7 @@ def main():
         duplicate_mode=args.duplicate_mode,
         tag_unassigned=args.tag_unassigned,
         read2transcripts=args.read2transcripts,
+        corrected_bed=args.corrected_bed,
     )
 
 

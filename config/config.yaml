@@ -9,6 +9,7 @@ basecode_correct: False
 basecode_keep_nonunique: True
 basecode_no_context_resolve: False
 basecode_end_resolve: True
+basecode_intron_resolve: True
 data_type: pacbio_ccs
 matching_strategy: precise
 delta: auto
@@ -18,3 +19,6 @@ model_construction_strategy: default_pacbio
 polya_requirement: auto
 annotate_bam: True
 duplicate_mode: all
+include_imputed: True
+assess_variant_support: True
+variant_support_mode: both

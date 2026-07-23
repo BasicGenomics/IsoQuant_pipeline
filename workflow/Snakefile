@@ -46,6 +46,9 @@ if "basecode_no_context_resolve" not in config:
 if "basecode_end_resolve" not in config:
     config["basecode_end_resolve"] = True
 
+if "basecode_intron_resolve" not in config:
+    config["basecode_intron_resolve"] = True
+
 if "data_type" not in config:
     config["data_type"] = "pacbio_ccs"
 
@@ -76,6 +79,16 @@ if "annotate_bam" not in config:
 if "duplicate_mode" not in config:
     config["duplicate_mode"] = "all"
 
+if "include_imputed" not in config:
+    config["include_imputed"] = False
+
+if "assess_variant_support" not in config:
+    config["assess_variant_support"] = True
+
+if "variant_support_mode" not in config:
+    config["variant_support_mode"] = "both"
+
+
 GROUP_TOKEN = config["read_group"].replace(":", "_")
 
 REF = "{resource_dir}/genome_references/{reference}/reference.fa".format(resource_dir = config["resource_dir"], reference = config["reference"])
@@ -85,7 +98,14 @@ ANNOTATION = COLLAPSED if config["collapse_annotation"] else "{}.gff3".format(GF
 GENEDB = "results/isoquant/{}.db".format(os.path.splitext(os.path.basename(ANNOTATION))[0])
 READ_ASSIGNMENTS = "results/isoquant/{name}/{name}.read_assignments.tsv.gz".format(name=config["name"])
 ANNOTATED_BAM = "results/isoquant/{name}.annotated.bam".format(name=config["name"])
-VARIANT_SUPPORT = "results/isoquant/{name}/{name}.variant_support.per_variant.tsv".format(name=config["name"])
+VS_PREFIX = "results/isoquant/{name}/{name}".format(name=config["name"])
+VS_MODE = config["variant_support_mode"]
+VARIANT_SUPPORT = []
+if VS_MODE in ("discovered", "both"):
+    VARIANT_SUPPORT.append(VS_PREFIX + ".discovered_variant_support.per_variant.tsv")
+if VS_MODE in ("reference", "both"):
+    VARIANT_SUPPORT.append(VS_PREFIX + ".reference_variant_support.per_variant.tsv")
+VARIANT_SUPPORT.append(VS_PREFIX + ".variant_support.summary.txt")
 
 include: "rules/run_isoquant.smk"
 
@@ -106,4 +126,4 @@ onerror:
     print("  See results/isoquant/.snakemake/log/ for details", file=sys.stdout, flush=True)
 
 rule all:
-    input: ["results/isoquant/mudata/{name}_counts.h5mu".format(name=config["name"]), VARIANT_SUPPORT] + ([ANNOTATED_BAM + ".bai"] if config["annotate_bam"] else [])
+    input: ["results/isoquant/mudata/{name}_counts.h5mu".format(name=config["name"])] + (VARIANT_SUPPORT if config["assess_variant_support"] else []) + ([ANNOTATED_BAM + ".bai"] if config["annotate_bam"] else [])

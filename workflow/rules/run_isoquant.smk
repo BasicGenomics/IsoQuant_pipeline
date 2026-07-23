@@ -35,6 +35,7 @@ rule run_isoquant:
             ref_gene_tpm = "results/isoquant/{name}/{name}.gene_grouped_{token}_tpm.tsv".format(name=config["name"], token = GROUP_TOKEN),
             models = "results/isoquant/{name}/{name}.transcript_models.gtf".format(name=config["name"]),
             read2transcripts = "results/isoquant/{name}/{name}.transcript_model_reads.tsv.gz".format(name=config["name"]),
+            corrected_reads = "results/isoquant/{name}/{name}.corrected_reads.bed.gz".format(name=config["name"]),
             genedb = GENEDB,
             read_assignments = READ_ASSIGNMENTS
     params: ref = REF,
@@ -43,6 +44,7 @@ rule run_isoquant:
                 ("--basecode_keep_nonunique",     config["basecode_keep_nonunique"]),
                 ("--basecode_no_context_resolve", config["basecode_no_context_resolve"]),
                 ("--basecode_end_resolve",        config["basecode_end_resolve"]),
+                ("--basecode_intron_resolve",     config["basecode_intron_resolve"]),
             ] if on),
             delta_flag = ("" if str(config.get("delta", "auto")).lower() in ("auto", "none", "")
                           else "--delta {}".format(config["delta"]))
@@ -64,23 +66,27 @@ rule make_mudata:
     log: "results/isoquant/logs/{name}.make_mudata.log".format(name=config["name"])
     shell: "python workflow/scripts/make_mudata.py --disc-transcript-counts {input.disc_transcript_counts} --disc-transcript-tpm {input.disc_transcript_tpm} --disc-gene-counts {input.disc_gene_counts} --disc-gene-tpm {input.disc_gene_tpm} --ref-transcript-counts {input.ref_transcript_counts} --ref-transcript-tpm {input.ref_transcript_tpm} --ref-gene-counts {input.ref_gene_counts} --ref-gene-tpm {input.ref_gene_tpm} --models {input.models} --genedb {input.genedb} --output {output} > {log} 2>&1"
 
-rule make_variant_support:
+rule assess_variant_support:
     input: models = "results/isoquant/{name}/{name}.transcript_models.gtf".format(name=config["name"]),
            read2transcripts = "results/isoquant/{name}/{name}.transcript_model_reads.tsv.gz".format(name=config["name"]),
-           bam =  "results/isoquant/{name}.isoquant.bam".format(name=config["name"]),
-    output: per_variant = "results/isoquant/{name}/{name}.variant_support.per_variant.tsv".format(name=config["name"]),
-            summary = "results/isoquant/{name}/{name}.variant_support.summary.txt".format(name=config["name"])
-    log: "results/isoquant/logs/{name}.make_variant_support.log".format(name=config["name"])
-    shell: "python workflow/scripts/make_variant_support.py --models {input.models} --read2transcripts {input.read2transcripts} --bam {input.bam} > {log} 2>&1"
+           read_assignments = READ_ASSIGNMENTS,
+           bam =  "results/isoquant/{name}.isoquant.bam".format(name=config["name"])
+    output: VARIANT_SUPPORT
+    params: prefix = "results/isoquant/{name}/{name}".format(name=config["name"]),
+            mode = config["variant_support_mode"]
+    log: "results/isoquant/logs/{name}.assess_variant_support.log".format(name=config["name"])
+    shell: "python workflow/scripts/assess_variant_support.py --mode {params.mode} --bam {input.bam} --read-assignments {input.read_assignments} --read2transcripts {input.read2transcripts} --models {input.models} --prefix {params.prefix} > {log} 2>&1"
 
 rule annotate_bam:
     input: bam =  "results/isoquant/{name}.isoquant.bam".format(name=config["name"]),
            bai =  "results/isoquant/{name}.isoquant.bam.bai".format(name=config["name"]),
            read_assignments = READ_ASSIGNMENTS,
-           read2transcripts = "results/isoquant/{name}/{name}.transcript_model_reads.tsv.gz".format(name=config["name"])
+           read2transcripts = "results/isoquant/{name}/{name}.transcript_model_reads.tsv.gz".format(name=config["name"]),
+           corrected_reads = "results/isoquant/{name}/{name}.corrected_reads.bed.gz".format(name=config["name"])
     output: ANNOTATED_BAM
+    params: bed_flag = ("--corrected-bed " + "results/isoquant/{n}/{n}.corrected_reads.bed.gz".format(n=config["name"])) if config["include_imputed"] else ""
     log: "results/isoquant/logs/{name}.annotate_bam.log".format(name=config["name"])
-    shell: "python workflow/scripts/annotate_bam.py --input {input.bam} --assignments {input.read_assignments} --read2transcripts {input.read2transcripts} --output {output} --duplicate-mode {config[duplicate_mode]} --tag-unassigned > {log} 2>&1"
+    shell: "python workflow/scripts/annotate_bam.py --input {input.bam} --assignments {input.read_assignments} --read2transcripts {input.read2transcripts} {params.bed_flag} --output {output} --duplicate-mode {config[duplicate_mode]} --tag-unassigned > {log} 2>&1"
 
 rule index_annotated_bam:
     input: ANNOTATED_BAM
