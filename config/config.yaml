@@ -6,7 +6,7 @@ collapse_mode: cds
 collapse_representative: canonical
 basecode_max_gap: 550                
 basecode_correct: False
-basecode_keep_nonunique: True
+basecode_keep_ambiguous_imputation: True
 basecode_no_context_resolve: False
 basecode_end_resolve: True
 basecode_intron_resolve: True
