@@ -83,13 +83,14 @@ rule annotate_bam:
            read_assignments = READ_ASSIGNMENTS,
            read2transcripts = "results/isoquant/{name}/{name}.transcript_model_reads.tsv.gz".format(name=config["name"]),
            corrected_reads = "results/isoquant/{name}/{name}.corrected_reads.bed.gz".format(name=config["name"])
-    output: ANNOTATED_BAM
+    output: temp(ANNOTATED_BAM.replace(".sorted.bam", ".bam"))
     params: bed_flag = ("--corrected-bed " + "results/isoquant/{n}/{n}.corrected_reads.bed.gz".format(n=config["name"])) if config["include_imputed"] else ""
     log: "results/isoquant/logs/{name}.annotate_bam.log".format(name=config["name"])
     shell: "python workflow/scripts/annotate_bam.py --input {input.bam} --assignments {input.read_assignments} --read2transcripts {input.read2transcripts} {params.bed_flag} --output {output} --duplicate-mode {config[duplicate_mode]} --tag-unassigned > {log} 2>&1"
 
-rule index_annotated_bam:
-    input: ANNOTATED_BAM
-    output: ANNOTATED_BAM + ".bai"
+rule sort_and_index_annotated_bam:
+    input: ANNOTATED_BAM.replace(".sorted.bam", ".bam")
+    output: bam = ANNOTATED_BAM,
+            bai = ANNOTATED_BAM + ".bai"
     log: "results/isoquant/logs/{name}.index_annotated_bam.log".format(name=config["name"])
-    shell: "samtools index {input} > {log} 2>&1"
+    shell: "samtools sort -o {output.bam} {input} > {log} 2>&1 && samtools index {output.bam} >> {log} 2>&1"

@@ -7,7 +7,7 @@ from snakemake.utils import min_version
 import time as _bc_time
 import sys
 import os
-min_version("6.7")
+min_version("6.15")
 
 configfile: "config/config.yaml"
 
@@ -97,7 +97,7 @@ COLLAPSED = "{}_collapsed_{}_{}.gff3".format(GFF, config["collapse_mode"], confi
 ANNOTATION = COLLAPSED if config["collapse_annotation"] else "{}.gff3".format(GFF)
 GENEDB = "results/isoquant/{}.db".format(os.path.splitext(os.path.basename(ANNOTATION))[0])
 READ_ASSIGNMENTS = "results/isoquant/{name}/{name}.read_assignments.tsv.gz".format(name=config["name"])
-ANNOTATED_BAM = "results/isoquant/{name}.annotated.bam".format(name=config["name"])
+ANNOTATED_BAM = "results/isoquant/{name}.annotated.sorted.bam".format(name=config["name"])
 VS_PREFIX = "results/isoquant/{name}/{name}".format(name=config["name"])
 VS_MODE = config["variant_support_mode"]
 VARIANT_SUPPORT = []

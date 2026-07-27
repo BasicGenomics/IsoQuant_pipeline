@@ -13,7 +13,7 @@ basecode_intron_resolve: True
 data_type: pacbio_ccs
 matching_strategy: precise
 delta: auto
-transcript_quantification: unique_splicing_consistent
+transcript_quantification: unique_only
 gene_quantification: unique_splicing_consistent
 model_construction_strategy: default_pacbio    
 polya_requirement: auto

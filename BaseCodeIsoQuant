@@ -7,9 +7,11 @@ import os
 import sys
 
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "VERSION")) as _vf:
-    __version__ = _vf.read().strip().split()[-1]
+    _tokens = _vf.read().strip().split()
+    __version__ = _tokens[1]            
+    _codename   = " ".join(_tokens[2:]) or ""
 
-_ver_line = "║" + f"    version {__version__} Midsummer Release".ljust(73) + "║"
+_ver_line = "║" + f"    version {__version__} {_codename} Release".ljust(73) + "║"
 
 logo = """
 ╔═════════════════════════════════════════════════════════════════════════╗
