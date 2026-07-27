@@ -11,22 +11,10 @@ with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "VERSION")) a
     __version__ = _tokens[1]            
     _codename   = " ".join(_tokens[2:]) or ""
 
-_ver_line = "║" + f"    version {__version__} {_codename} Release".ljust(73) + "║"
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "workflow", "scripts"))
+from bc_banner import build_banner
 
-logo = """
-╔═════════════════════════════════════════════════════════════════════════╗
-║                                                                         ║
-║    ██╗███████╗ ██████╗  ██████╗ ██╗   ██╗ █████╗ ███╗   ██╗████████╗    ║
-║    ██║██╔════╝██╔═══██╗██╔═══██╗██║   ██║██╔══██╗████╗  ██║╚══██╔══╝    ║
-║    ██║███████╗██║   ██║██║   ██║██║   ██║███████║██╔██╗ ██║   ██║       ║
-║    ██║╚════██║██║   ██║██║▄▄ ██║██║   ██║██╔══██║██║╚██╗██║   ██║       ║
-║    ██║███████║╚██████╔╝╚██████╔╝╚██████╔╝██║  ██║██║ ╚████║   ██║       ║
-║    ╚═╝╚══════╝ ╚═════╝  ╚══▀▀═╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝       ║
-║                                                                         ║
-║    BaseCode Post-Processing Pipeline · Powered by IsoQuant              ║
-{ver_line}
-║    © 2026 Basic Genomics AB · All rights reserved                       ║
-╚═════════════════════════════════════════════════════════════════════════╝""".format(ver_line=_ver_line)
+logo = build_banner(__version__, _codename)
 
 if __name__ == '__main__':
 

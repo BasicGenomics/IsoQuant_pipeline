@@ -7,6 +7,8 @@ from snakemake.utils import min_version
 import time as _bc_time
 import sys
 import os
+import re
+import hashlib
 min_version("6.15")
 
 configfile: "config/config.yaml"
@@ -109,10 +111,78 @@ VARIANT_SUPPORT.append(VS_PREFIX + ".variant_support.summary.txt")
 
 include: "rules/run_isoquant.smk"
 
+
+def _bc_pipeline_version():
+    try:
+        tok = open("VERSION").read().strip().split()
+        return (tok[1] if len(tok) > 1 else tok[-1]), " ".join(tok[2:])
+    except Exception:
+        return "?", ""
+
+def _bc_script_versions(script_dir="workflow/scripts"):
+    rows = []
+    try:
+        names = sorted(os.listdir(script_dir))
+    except FileNotFoundError:
+        return rows
+    pat = re.compile(r'''^\s*(?:__version__|version)\s*=\s*['"]([^'"]+)['"]''', re.M)
+    for fn in names:
+        if not fn.endswith(".py") or fn == "bc_banner.py":
+            continue
+        p = os.path.join(script_dir, fn)
+        with open(p, "rb") as fh:
+            data = fh.read()
+        m = pat.search(data.decode("utf-8", "replace"))
+        rows.append((fn, m.group(1) if m else None,
+                     hashlib.sha1(data).hexdigest()[:8],
+                     _bc_time.strftime("%Y-%m-%d %H:%M", _bc_time.localtime(os.path.getmtime(p)))))
+    return rows
+
+def _bc_mode_block():
+    ver, code = _bc_pipeline_version()
+    on = lambda b: "ON" if b else "OFF"
+    ann = ("collapsed (%s/%s)" % (config["collapse_mode"], config["collapse_representative"])
+           if config["collapse_annotation"] else "reference (no collapse)")
+    head = "▶ BaseCode IsoQuant Pipeline v%s%s" % (ver, (" (%s Release)" % code) if code else "")
+    return "\n".join([head,
+         "  Run ID            : %s" % config["name"],
+         "  Annotation        : %s" % ann,
+         "  Matching strategy : matching_strategy=%s, delta=%s" % (config["matching_strategy"], config["delta"]),
+         "  BaseCode mode     : max_gap=%s, intron_resolve=%s, end_resolve=%s" % (
+             config["basecode_max_gap"], on(config["basecode_intron_resolve"]), on(config["basecode_end_resolve"])),
+         "  Quantification    : transcript=%s, gene=%s" % (config["transcript_quantification"], config["gene_quantification"])])
+
+def _bc_banner():
+    try:
+        if "workflow/scripts" not in sys.path:
+            sys.path.insert(0, "workflow/scripts")
+        import bc_banner
+        ver, code = _bc_pipeline_version()
+        return bc_banner.build_banner(ver, code)
+    except Exception:
+        return ""
+
+def _bc_manifest():
+    L = [_bc_mode_block()]
+    sv = _bc_script_versions()
+    if sv:
+        L.append("  Script versions (semver / sha1[:8] / mtime):")
+        for fn, sver, h, mt in sv:
+            L.append("      %-26s %-7s %s  %s" % (fn, ("v" + sver) if sver else "-", h, mt))
+    return "\n".join(L)
+
 onstart:
     config['_bc_start'] = _bc_time.time()
-    print("▶ BaseCode IsoQuant Pipeline starting", file=sys.stdout, flush=True)
-    print(f"  Run ID: {config['name']}  (BaseCode mode, max_gap={config['basecode_max_gap']})", file=sys.stdout, flush=True)
+    print(_bc_mode_block(), file=sys.stdout, flush=True)
+    try:
+        os.makedirs("results/isoquant/logs", exist_ok=True)
+        _banner = _bc_banner()
+        with open("results/isoquant/logs/%s.versions.log" % config["name"], "w") as _vf:
+            _vf.write((_banner + "\n\n" if _banner else "")
+                      + _bc_manifest() + "\n\nstarted   : %s\n" % _bc_time.strftime("%Y-%m-%d %H:%M:%S"))
+    except Exception as _e:
+        print("  (Warning: could not write versions log: %s)\n"
+              "  Continuing..." % _e, file=sys.stdout, flush=True)
 
 onsuccess:
     elapsed = int(_bc_time.time() - config.get('_bc_start', _bc_time.time()))
@@ -120,6 +190,11 @@ onsuccess:
     m, s = divmod(rem, 60)
     elapsed_str = f"{h}h {m}m {s}s" if h else (f"{m}m {s}s" if m else f"{s}s")
     print(f"✓ BaseCode IsoQuant Pipeline completed in {elapsed_str}", file=sys.stdout, flush=True)
+    for _dup in ("results/isoquant/isoquant.log", "results/isoquant/isoquant.log.old"):
+        try:
+            os.remove(_dup)
+        except OSError:
+            pass
 
 onerror:
     print("✗ BaseCode IsoQuant Pipeline failed", file=sys.stdout, flush=True)
