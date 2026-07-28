@@ -48,8 +48,6 @@ def main():
             q_q = read.query_qualities
             q_s = read.query_sequence
             cigarstring = read.cigarstring
-            # Some reads carry no per-base qualities (QUAL='*' -> query_qualities is None);
-            # synthesize Q40 for the existing bases so the polyA/T padding can be appended.
             base_q = array.array('B', q_q) if q_q is not None else array.array('B', [40] * len(q_s))
             pad_q = array.array('B', 24 * [40])
             if read.is_reverse:
