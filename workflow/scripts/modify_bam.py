@@ -2,7 +2,7 @@ import argparse
 import pysam
 import array
 
-version = "1.1"
+version = "1.2"
 
 def get_tag_safe(read, tag, default=None):
     try:
@@ -48,14 +48,16 @@ def main():
             q_q = read.query_qualities
             q_s = read.query_sequence
             cigarstring = read.cigarstring
+            # Some reads carry no per-base qualities (QUAL='*' -> query_qualities is None);
+            # synthesize Q40 for the existing bases so the polyA/T padding can be appended.
+            base_q = array.array('B', q_q) if q_q is not None else array.array('B', [40] * len(q_s))
+            pad_q = array.array('B', 24 * [40])
             if read.is_reverse:
-                q_new = array.array('B', 24 * [40])
-                q_new.extend(q_q)
+                q_new = pad_q + base_q
                 s_new = 24 * 'T' + q_s
                 cigarstring_new = '24S' + cigarstring
             else:
-                q_new = q_q
-                q_new.extend(array.array('B', 24 * [40]))
+                q_new = base_q + pad_q
                 s_new = q_s + 24 * 'A'
                 cigarstring_new = cigarstring + '24S'
             read.query_sequence = s_new
