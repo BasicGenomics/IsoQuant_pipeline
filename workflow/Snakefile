@@ -143,7 +143,7 @@ def _bc_mode_block():
     on = lambda b: "ON" if b else "OFF"
     ann = ("collapsed (%s/%s)" % (config["collapse_mode"], config["collapse_representative"])
            if config["collapse_annotation"] else "reference (no collapse)")
-    head = "▶ BaseCode IsoQuant Pipeline v%s%s" % (ver, (" (%s Release)" % code) if code else "")
+    head = "▶ BaseCode IsoQuant Pipeline v%s%s" % (ver, (" %s Release" % code) if code else "")
     return "\n".join([head,
          "  Run ID            : %s" % config["name"],
          "  Annotation        : %s" % ann,
