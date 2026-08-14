@@ -42,8 +42,16 @@ if "basecode_correct" not in config:
 if "basecode_keep_ambiguous_imputation" not in config:
     config["basecode_keep_ambiguous_imputation"] = True
 
-if "basecode_no_context_resolve" not in config:
-    config["basecode_no_context_resolve"] = False
+# renamed from basecode_no_context_resolve (inverted). The deprecated key wins when present:
+# config/config.yaml is always merged in as the base, so it always supplies the new key and a
+# "not in config" guard could never see the old one coming from a user's --configfile.
+if "basecode_no_context_resolve" in config:
+    config["basecode_context_resolve"] = not config["basecode_no_context_resolve"]
+    print("  (Warning: 'basecode_no_context_resolve' is deprecated; use "
+          "'basecode_context_resolve: %s' instead)" % config["basecode_context_resolve"],
+          file=sys.stderr, flush=True)
+elif "basecode_context_resolve" not in config:
+    config["basecode_context_resolve"] = True
 
 if "basecode_end_resolve" not in config:
     config["basecode_end_resolve"] = True
@@ -76,13 +84,13 @@ if "read_group" not in config:
     config["read_group"] = "tag:SM"
 
 if "annotate_bam" not in config:
-    config["annotate_bam"] = False
+    config["annotate_bam"] = True
 
 if "duplicate_mode" not in config:
     config["duplicate_mode"] = "all"
 
 if "include_imputed" not in config:
-    config["include_imputed"] = False
+    config["include_imputed"] = True
 
 if "assess_variant_support" not in config:
     config["assess_variant_support"] = True

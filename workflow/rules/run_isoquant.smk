@@ -42,7 +42,7 @@ rule run_isoquant:
             basecode_flags = " ".join(flag for flag, on in [
                 ("--basecode_correct",            config["basecode_correct"]),
                 ("--basecode_keep_ambiguous_imputation",     config["basecode_keep_ambiguous_imputation"]),
-                ("--basecode_no_context_resolve", config["basecode_no_context_resolve"]),
+                ("--basecode_no_context_resolve", not config["basecode_context_resolve"]),
                 ("--basecode_end_resolve",        config["basecode_end_resolve"]),
                 ("--basecode_intron_resolve",     config["basecode_intron_resolve"]),
             ] if on),

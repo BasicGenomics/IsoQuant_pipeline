@@ -6,7 +6,9 @@ import gzip
 import sys
 import pysam
 
-version = "1.0"
+version = "1.1"
+
+DEFAULT_DROP_TAGS = ("CV",)
 
 ASSIGNMENT_PRIORITY = {
     "unique": 1,
@@ -126,6 +128,7 @@ def tag_bam(
     tag_unassigned=False,
     read2transcripts=None,
     corrected_bed=None,
+    drop_tags=DEFAULT_DROP_TAGS,
 ):
     assignments = load_assignments(assignments_gz, duplicate_mode)
     print(f"Loaded assignments for {len(assignments):,} read_ids")
@@ -137,11 +140,19 @@ def tag_bam(
     if corrected_bed:
         blocks = load_bed_blocks(corrected_bed)
         print(f"Loaded imputed structure (corrected_bed) for {len(blocks):,} read_ids")
+    drop_tags = tuple(drop_tags or ())
+    if drop_tags:
+        print(f"Dropping input tags: {', '.join(drop_tags)}")
     total = tagged = missing = imputed = 0
+    dropped_bytes = 0
     with pysam.AlignmentFile(input_bam, "rb") as bam_in, \
          pysam.AlignmentFile(output_bam, "wb", header=bam_in.header) as bam_out:
         for read in bam_in:
             total += 1
+            for t in drop_tags:
+                if read.has_tag(t):
+                    dropped_bytes += len(str(read.get_tag(t)))
+                    read.set_tag(t, None)
             # Optional: rewrite CIGAR to the imputed exon/intron structure (from corrected_bed).
             # Filled bases were never sequenced, so SEQ becomes N; original CIGAR kept in OC.
             if corrected_bed:
@@ -196,6 +207,8 @@ def tag_bam(
     print(f"BAM records without IsoQuant assignment: {missing:,}")
     if corrected_bed:
         print(f"Reads with CIGAR rewritten to imputed structure (IM=1): {imputed:,}")
+    if drop_tags and dropped_bytes:
+        print(f"Dropped tag payload ({', '.join(drop_tags)}): {dropped_bytes / 1048576:.1f} MB uncompressed")
 
 
 def main():
@@ -210,6 +223,9 @@ def main():
                              "'best' = highest-priority type (1 isoform); "
                              "'all' = every compatible isoform, ZI and ZE ';'-joined and positionally aligned (ZI[i] <-> ZE[i])")
     parser.add_argument("--tag-unassigned", action="store_true", help="Tag reads without assignment")
+    parser.add_argument("--drop-tags", default=",".join(DEFAULT_DROP_TAGS),
+                        help="Comma-separated tags to strip from the input records "
+                             "(default: %(default)s; pass '' to keep everything)")
     parser.add_argument("--corrected-bed", default=None,
                         help="IsoQuant corrected_reads.bed[.gz]; if given, also rewrite each read's "
                              "CIGAR to its imputed exon/intron structure (SEQ->N, OC=orig cigar, IM=1 if changed)")
@@ -223,6 +239,7 @@ def main():
         tag_unassigned=args.tag_unassigned,
         read2transcripts=args.read2transcripts,
         corrected_bed=args.corrected_bed,
+        drop_tags=[t.strip() for t in args.drop_tags.split(",") if t.strip()],
     )
 
 
