@@ -8,7 +8,7 @@ import sys
 
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "VERSION")) as _vf:
     _tokens = _vf.read().strip().split()
-    __version__ = _tokens[1]            
+    __version__ = _tokens[1]
     _codename   = " ".join(_tokens[2:]) or ""
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "workflow", "scripts"))
