@@ -10,7 +10,7 @@ from mudata import MuData
 import anndata
 anndata.settings.allow_write_nullable_strings = True
 
-version = "1.1"
+version = "1.1.0"
 
 def parse_gtf(gtffile,genedb=None):
     if genedb is None:
@@ -27,9 +27,9 @@ def parse_gtf(gtffile,genedb=None):
                     )
     else:
         try:
-            db = gffutils.FeatureDB(genedb, 
+            db = gffutils.FeatureDB(genedb,
                                     sort_attribute_values=True,
-                                    keep_order=True) 
+                                    keep_order=True)
         except Exception as e:
             return None,None
     gene_dict = {}
@@ -140,7 +140,7 @@ def main():
 
     transcript_adata = generate_anndata(transcript_X, obs_df, transcript_var_df)
     mdata = MuData({'isoform': transcript_adata})
- 
+
     tpm = pd.read_csv(args.disc_transcript_tpm, sep='\t', index_col=0, comment=None)
     tpm = tpm.loc[mdata['isoform'].var_names, :]
     tpm = tpm.loc[:, mdata.obs_names]
@@ -180,4 +180,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    

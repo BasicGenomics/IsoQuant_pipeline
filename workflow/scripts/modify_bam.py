@@ -1,8 +1,9 @@
 import argparse
+import gzip
 import pysam
 import array
 
-version = "1.2"
+version = "1.3.0"
 
 def get_tag_safe(read, tag, default=None):
     try:
@@ -21,7 +22,7 @@ def main():
     parser.add_argument('-i', '--input', metavar='Input', type=str, help='Input .bam file')
     parser.add_argument('-o', '--output', metavar='Output', type=str, help='Output .bam file')
     parser.add_argument('--full-length-only', action='store_true', help='Emit only full-length molecules (complete: TC>0 & FC>0)')
-    parser.add_argument('--tracking-file', metavar='TSV', type=str, default=None, help='Optional .tsv file listing every molecule and what was adapted')
+    parser.add_argument('--tracking-file', metavar='TSV', type=str, default=None, help='Optional .tsv[.gz] file listing every molecule and what was adapted')
 
     args = parser.parse_args()
 
@@ -30,7 +31,8 @@ def main():
 
     track = None
     if args.tracking_file:
-        track = open(args.tracking_file, 'w')
+        track = (gzip.open(args.tracking_file, 'wt')
+                 if args.tracking_file.endswith('.gz') else open(args.tracking_file, 'w'))
         track.write("read_id\thas_gap\tdel_len\tpolya_added\tcomplete\tAD\n")
 
     n_total = n_written = n_dropped_nonfl = 0

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse, re, sys
 
-version = "1.0"
+version = "1.0.0"
 
 TX_TYPES = {"transcript", "mRNA"}
 
@@ -45,7 +45,6 @@ def tag_tier(tags):
     if "basic" in toks:
         return 7.0
     return 8.0
-
 
 def main():
     ap = argparse.ArgumentParser(description="Collapse same-body transcripts; keep most-supported representative")

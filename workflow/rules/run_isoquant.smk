@@ -1,7 +1,7 @@
 rule modify_bam:
     input: "results/{name}.stitched.molecules.sorted.bam".format(name=config["name"])
     output: bam = temp("results/isoquant/{name}.isoquant.bam".format(name=config["name"])),
-            tracking = "results/isoquant/{name}.adapted_molecules.tsv".format(name=config["name"])
+            tracking = "results/isoquant/{name}.adapted_molecules.tsv.gz".format(name=config["name"])
     params: fl_flag = "--full-length-only" if config["full_length_only"] else ""
     log: "results/isoquant/logs/{name}.modify_bamfile.log".format(name=config["name"])
     shell: "python workflow/scripts/modify_bam.py --input {input} --output {output.bam} --tracking-file {output.tracking} {params.fl_flag} > {log} 2>&1"
@@ -70,7 +70,8 @@ rule assess_variant_support:
     input: models = "results/isoquant/{name}/{name}.transcript_models.gtf".format(name=config["name"]),
            read2transcripts = "results/isoquant/{name}/{name}.transcript_model_reads.tsv.gz".format(name=config["name"]),
            read_assignments = READ_ASSIGNMENTS,
-           bam =  "results/isoquant/{name}.isoquant.bam".format(name=config["name"])
+           bam =  "results/isoquant/{name}.isoquant.bam".format(name=config["name"]),
+           bai =  "results/isoquant/{name}.isoquant.bam.bai".format(name=config["name"])
     output: VARIANT_SUPPORT
     params: prefix = "results/isoquant/{name}/{name}".format(name=config["name"]),
             mode = config["variant_support_mode"]
@@ -83,14 +84,9 @@ rule annotate_bam:
            read_assignments = READ_ASSIGNMENTS,
            read2transcripts = "results/isoquant/{name}/{name}.transcript_model_reads.tsv.gz".format(name=config["name"]),
            corrected_reads = "results/isoquant/{name}/{name}.corrected_reads.bed.gz".format(name=config["name"])
-    output: temp(ANNOTATED_BAM.replace(".sorted.bam", ".bam"))
-    params: bed_flag = ("--corrected-bed " + "results/isoquant/{n}/{n}.corrected_reads.bed.gz".format(n=config["name"])) if config["include_imputed"] else ""
-    log: "results/isoquant/logs/{name}.annotate_bam.log".format(name=config["name"])
-    shell: "python workflow/scripts/annotate_bam.py --input {input.bam} --assignments {input.read_assignments} --read2transcripts {input.read2transcripts} {params.bed_flag} --output {output} --duplicate-mode {config[duplicate_mode]} --tag-unassigned > {log} 2>&1"
-
-rule sort_and_index_annotated_bam:
-    input: ANNOTATED_BAM.replace(".sorted.bam", ".bam")
     output: bam = ANNOTATED_BAM,
             bai = ANNOTATED_BAM + ".bai"
-    log: "results/isoquant/logs/{name}.index_annotated_bam.log".format(name=config["name"])
-    shell: "samtools sort -o {output.bam} {input} > {log} 2>&1 && samtools index {output.bam} >> {log} 2>&1"
+    params: bed_flag = ("--corrected-bed " + "results/isoquant/{n}/{n}.corrected_reads.bed.gz".format(n=config["name"])) if config["include_imputed"] else ""
+    threads: min(8, config["threads"])
+    log: "results/isoquant/logs/{name}.annotate_bam.log".format(name=config["name"])
+    shell: "python workflow/scripts/annotate_bam.py --input {input.bam} --assignments {input.read_assignments} --read2transcripts {input.read2transcripts} {params.bed_flag} --output {output.bam} --duplicate-mode {config[duplicate_mode]} --tag-unassigned --threads {threads} > {log} 2>&1"
